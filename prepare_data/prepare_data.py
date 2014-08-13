@@ -35,6 +35,8 @@ VERSION
 import glob                        # For listing all *.XXX files
 import ConfigParser                # For configuration file management
 import numpy                       # Vector processing (dynamic computation pre-requisite)
+from os import listdir
+from os.path import isfile, join   # list only files
 import sys, os, traceback, optparse
 import time
 import re
@@ -92,8 +94,77 @@ def generateList():
     """
     Generate the list files
     """
+    global configuration
+    lab_dir = "%s/%s/%s" % (configuration.get("directories", "root"),
+                            configuration.get("directories", "data_dir"),
+                            configuration.get("directories", "lab_dir"))
+    
+    mono_dir = "%s/%s" % (os.path.abspath(lab_dir),
+                          configuration.get("directories",
+                                            "mono_lab_dir"))
+    
+    full_dir = "%s/%s" % (os.path.abspath(lab_dir),
+                          configuration.get("directories",
+                                            "full_lab_dir"))
+    
+    gen_dir = "%s/%s" % (os.path.abspath(lab_dir),
+                          configuration.get("directories",
+                                            "gen_lab_dir"))
+    # FIXME: add cmp checking
+    
+    mono_lab = [ f for f in listdir(mono_dir) if isfile(join(full_dir,f)) ]
+    full_lab = [ f for f in listdir(full_dir) if isfile(join(full_dir,f)) ]
+    gen_lab = [ f for f in listdir(gen_dir) if isfile(join(gen_dir,f)) ]
+    
+    list_dir = "%s/%s/%s" % (configuration.get("directories", "root"),
+                            configuration.get("directories", "data_dir"),
+                            configuration.get("directories", "list_dir"))
+    
+    if not os.path.isdir(list_dir):
+        os.mkdir(list_dir)
+    inters = set(mono_lab)
+    inters.intersection_update(full_lab)
 
+    p = re.compile('[ \t]+')
 
+    # Monophone list
+    mono_set = set()
+    for f in inters:
+        with open("%s/%s" % (mono_dir, f)) as cur_lab_file:
+            for cur_line in cur_lab_file:
+                cur_line = cur_line.strip()
+                lab = p.split(cur_line)[2]
+                mono_set.add(lab)
+                # mono_set.add(.split(" ").split("\t"))
+
+    with open('%s/mono.list' % list_dir, 'w') as f_list:
+        f_list.write("\n".join(mono_set))
+
+    # Fullcontext list (Training)
+    full_set = set()
+    for f in inters:
+        with open("%s/%s" % (full_dir, f)) as cur_lab_file:
+            for cur_line in cur_lab_file:
+                cur_line = cur_line.strip()
+                lab = p.split(cur_line)[2]
+                full_set.add(lab)
+                # full_set.add(.split(" ").split("\t"))
+                
+    with open('%s/full.list' % list_dir, 'w') as f_list:
+        f_list.write("\n".join(full_set))
+
+    # Fullcontext list (Training + generation)
+    for f in gen_lab:
+        with open("%s/%s" % (gen_dir, f)) as cur_lab_file:
+            for cur_line in cur_lab_file:
+                cur_line = cur_line.strip()
+                lab = p.split(cur_line)[2]
+                full_set.add(lab)
+                # full_set.add(.split(" ").split("\t"))
+
+                
+    with open('%s/full_all.list' % list_dir, 'w') as f_list:
+        f_list.write("\n".join(full_set))
 ################################################################################
 ### Configuration loading and logging setup functions
 ################################################################################
@@ -144,8 +215,14 @@ def main():
 
     # Init
     loadConfiguration(args[0])
-    data_dir = configuration.get("directories", "root") + "/" + configuration.get("directories", "data_dir")
 
+
+    # Data part
+    data_dir = configuration.get("directories", "root") + "/" + configuration.get("directories", "data_dir")
+        
+    # Labels part
+    generateMLF()
+    generateList()
 
 ################################################################################
 ### Main part encapsulation
