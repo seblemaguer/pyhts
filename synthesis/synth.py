@@ -20,7 +20,7 @@ EXIT STATUS
 
     TODO: List exit codes
 
-AUTHOR
+AUTHORS
 
     Sébastien Le Maguer <sebastien.le_maguer@irisa.fr>
     Marc Evrard <marc.evrard@limsi.fr>
@@ -38,6 +38,8 @@ import sys
 import os
 import traceback
 import argparse
+
+# import configparser as cfp
 
 import time
 import subprocess  # Shell command calling
@@ -73,15 +75,25 @@ TMP_DUR_MMF = "tmp/dur_%d.mmf" % os.getpid()            # FIXME
 TYPE_MAP = {"cmp": ("mgc", "lf0", "bap"), "dur": "dur"}
 
 # Signal
-PF_MCP = 1.4                                            # postfiltering factor for MGC
-PF_LSP = 0.7                                            # postfiltering factor for LSP
+PF_MCP = 1.4                                            # post-filtering factor for MGC
+PF_LSP = 0.7                                            # post-filtering factor for LSP
 FL = 576                                                # length of impulse response
 CO = 2047                                               #
 ORDER = {"mgc": 50, "lf0": 1, "bap": 25}
-SAMPLERATE = 44100                                      # Signal samplerate
-FRAMESHIFT = 220.5
-FREQWARPING = 0.53                                      # [FIXME: DEPENDS ON SAMPLERATE]
-GAMMA = 0                                               # [FIXME: see config]
+SAMPLERATE = 48000                                      # Signal sample rate
+FRAMESHIFT_MS = 5
+FREQWARP_DIC = {
+    '8000': 0.31,
+    '10000': 0.35,
+    '12000': 0.37,
+    '16000': 0.42,
+    '22050': 0.45,
+    '32000': 0.45,
+    '44100': 0.53,
+    '48000': 0.55,
+}
+FREQWARPING = FREQWARP_DIC[str(SAMPLERATE)]
+GAMMA = 0
 
 # Generation
 MINDUR = 5
@@ -100,10 +112,10 @@ OPTKIND = 'NEWTON'                # optimization method (STEEPEST, NEWTON, or LB
 CDGV = True                       # context-dependent GV
 
 # GV
-SLNT = ('pau', 'h#', 'brth', 'start', 'end', 'spause', 'insp')
+SLNT = ('pau', 'h#', 'brth', 'start', 'end', 'spause', 'insp', 'ssil', 'sil')
 
 # Tools
-STRAIGHT_PATH = "STRAIGHTV40pcode"
+STRAIGHT_PATH = "/Volumes/Projet/STRAIGHT/straight-v40-007-d"
 WIN_PATH = "win"    # FIXME
 
 # Other stuffs
@@ -122,7 +134,6 @@ def generate_label_list(input_label_list):
     """
     Generate the label list file to get it throught the tree
     """
-
     p = re.compile('[ \t]+')
     full_set = set()
 
@@ -168,7 +179,7 @@ def generate_synthesis_configuration(use_gv):
     """
     # Synthesis configuration
 
-   # config file for parameter generation
+    # config file for parameter generation
     with open(SYNTH_CONFIG, "w") as f:
 
         # Global parameters
@@ -230,7 +241,6 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
     """
     Generate hed
     """
-
     # Generate GV script
     if use_gv:
         with open(GV_HED_UNSEEN_BASE + ".hed", "w") as f:
@@ -302,9 +312,8 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
 
 def parameter_conversion(outdir, base_list):
     """
-    Convert parameter to STRAIGT params
+    Convert parameter to STRAIGHT params
     """
-
     for base in base_list:
         # lf0 => f0
         cmd = "sopr -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0" % \
@@ -324,11 +333,11 @@ def parameter_conversion(outdir, base_list):
         with open("%s/%s.sp" % (outdir, base), 'w') as f:
             subprocess.call(cmd.split(" "), stdout=f)
 
-        # Clean [FIXME: do with options]
-        os.remove("%s/%s.lf0" % (outdir, base))
-        os.remove("%s/%s.mgc" % (outdir, base))
-        os.remove("%s/%s.bap" % (outdir, base))
-        os.remove("%s/%s.dur" % (outdir, base))     # FIXME : must be an option in the synth config
+        # # Clean [FIXME: do with options]
+        # os.remove("%s/%s.lf0" % (outdir, base))
+        # os.remove("%s/%s.mgc" % (outdir, base))
+        # os.remove("%s/%s.bap" % (outdir, base))
+        # os.remove("%s/%s.dur" % (outdir, base))     # FIXME : must be an option in the synth config
 
 
 def straight_generation(outdir, base_list):
@@ -340,7 +349,7 @@ def straight_generation(outdir, base_list):
     with open(STRAIGHT_SCRIPT, "w") as f:
         # Header
         f.write("path(path, '%s');\n" % STRAIGHT_PATH)
-        f.write("prm.spectralUpdateInterval = %f;\n" % (1000.0 * FRAMESHIFT / SAMPLERATE))
+        f.write("prm.spectralUpdateInterval = %f;\n" % FRAMESHIFT_MS)
         f.write("prm.levelNormalizationIndicator = 0;\n\n")
 
         # Read STRAIGHT params
@@ -368,16 +377,16 @@ def straight_generation(outdir, base_list):
         # Ending
         f.write("quit;\n")
 
-    # Synthesis !
+    # Synthesis!
     cmd = "matlab -nojvm -nosplash -nodisplay < %s" % STRAIGHT_SCRIPT
     subprocess.call(cmd.split(" "), stdout=out_handle)
 
-    # Clean  [FIXME: do with options]
-    os.remove(STRAIGHT_SCRIPT)
-    for base in base_list:
-        os.remove('%s/%s.sp' % (outdir, base))
-        os.remove('%s/%s.ap' % (outdir, base))
-        os.remove('%s/%s.f0' % (outdir, base))
+    # # Clean  [FIXME: do with options]
+    # os.remove(STRAIGHT_SCRIPT)
+    # for base in base_list:
+    #     os.remove('%s/%s.sp' % (outdir, base))
+    #     os.remove('%s/%s.ap' % (outdir, base))
+    #     os.remove('%s/%s.f0' % (outdir, base))
 
 
 ################################################################################
@@ -486,10 +495,9 @@ def main():
 
 if __name__ == '__main__':
     try:
-        parser = argparse.ArgumentParser(   # formatter=argparse.TitledHelpFormatter(),
-                                            usage=globals()['__doc__'],
-                                            version='$Id$'
-        )
+        parser = argparse.ArgumentParser(usage=globals()['__doc__'])     # formatter=argparse.TitledHelpFormatter(),
+
+        parser.add_argument('--version', action='version', version='$Id$')
         parser.add_argument('-v', '--verbose', action='store_true',
                             default=False, help='verbose output')
 
@@ -520,14 +528,14 @@ if __name__ == '__main__':
                             help="output wav directory", metavar="FILE")
         (options, args) = parser.parse_args()
 
-         # Debug time
+        # Debug time
         logger = setup_logging(options.verbose)
         out_handle = open(os.devnull, "w")
         if options.verbose:
             out_handle.close()
             out_handle = sys.stdout
         
-         # Debug time
+        # Debug time
         start_time = time.time()
         if options.verbose:
             logger.debug(time.asctime())
