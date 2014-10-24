@@ -216,6 +216,7 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
 ################################################################################
 ### Parameter transformation function
 ################################################################################
+
 # TODO : add post-filtering functions
 # def postFilteringMCP(base, outdir):
 #     """
@@ -344,18 +345,18 @@ def main():
     """
     Main entry function
     """
-    global options, args, logger, out_handle
+    global args, logger, out_handle
 
-    use_gv = options.gvDir
-    outdir = os.path.abspath(options.output)
+    use_gv = args.gvDir
+    outdir = os.path.abspath(args.output)
 
     # 0. Generate list file
     list_input_files = TMP_LABELS_LIST_FN
-    if options.synthList:
-        list_input_files = options.input
+    if args.synthList:
+        list_input_files = args.input
     else:
         with open(list_input_files, 'w') as f:
-            f.write(options.input + '\n')
+            f.write(args.input + '\n')
 
     base_list = []
     label_fn_list = []
@@ -371,34 +372,34 @@ def main():
     generate_synthesis_configuration(use_gv)
 
     # 2. Generate scripts
-    mk_unseen_script(options.cmpTreeDir, options.durTreeDir, use_gv, options.gvDir)
+    mk_unseen_script(args.cmpTreeDir, args.durTreeDir, use_gv, args.gvDir)
 
     # 3. Compose models
     #    - CMP
     logger.info("CMP unseen model building")
     cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (TRAIN_CONFIG, options.cmpModelFn, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed",
-         options.inputList)
+        (TRAIN_CONFIG, args.cmpModelFn, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed",
+         args.inputList)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     #    - DUR
     logger.info("Duration unseen model building")
     cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (TRAIN_CONFIG, options.durModelFn, TMP_DUR_MMF,
-            TYPE_HED_UNSEEN_BASE + '_dur.hed', options.inputList)
+        (TRAIN_CONFIG, args.durModelFn, TMP_DUR_MMF,
+            TYPE_HED_UNSEEN_BASE + '_dur.hed', args.inputList)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     
     #    - GV
     if use_gv:
         logger.info("Global variance unseen model bulding")
         cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-            (TRAIN_CONFIG, options.gvDir + '/clustered.mmf', TMP_GV_MMF,
-                GV_HED_UNSEEN_BASE + '.hed', options.gvDir + '/gv.list')
+            (TRAIN_CONFIG, args.gvDir + '/clustered.mmf', TMP_GV_MMF,
+                GV_HED_UNSEEN_BASE + '.hed', args.gvDir + '/gv.list')
         subprocess.call(cmd.split(' '), stdout=out_handle)
 
     # 4. Generate parameters
     logger.info("Parameter generation")
     cmd = "HMGenS -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s" % \
-        (SYNTH_CONFIG, list_input_files, HMM['BEAM_STEPS'], int(options.pgType),
+        (SYNTH_CONFIG, list_input_files, HMM['BEAM_STEPS'], int(args.pgType),
             TMP_CMP_MMF, TMP_DUR_MMF, outdir,
             TYPE_TIED_LIST_BASE + '_cmp', TYPE_TIED_LIST_BASE + '_dur')
     subprocess.call(cmd.split(' '), stdout=out_handle)
@@ -448,27 +449,27 @@ if __name__ == '__main__':
                           help="input label file", metavar='FILE')
         argp.add_argument('-o', '--output', dest='output',
                           help="output wav directory", metavar='FILE')
-        (options, args) = argp.parse_args()
+        args = argp.parse_args()
 
         # Debug time
-        logger = setup_logging(options.verbose)
+        logger = setup_logging(args.verbose)
         out_handle = open(os.devnull, 'w')
-        if options.verbose:
+        if args.verbose:
             out_handle.close()
             out_handle = sys.stdout
         
         # Debug time
         start_time = time.time()
-        if options.verbose:
+        if args.verbose:
             logger.debug(time.asctime())
 
         # Running main function <=> run application
         main()
 
         # Debug time
-        if options.verbose:
+        if args.verbose:
             logger.debug(time.asctime())
-        if options.verbose:
+        if args.verbose:
             logger.debug("TOTAL TIME IN MINUTES: %f" % ((time.time() - start_time) / 60.0))
 
         # Exit program
