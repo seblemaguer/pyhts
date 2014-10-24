@@ -52,7 +52,7 @@ from pyhts_const import *
 
 def generate_label_list(input_label_list):
     """
-    Generate the label list file to get it throught the tree
+    Generate the label list file to get it through the tree
     """
     p = re.compile('[ \t]+')
     full_set = set()
@@ -390,7 +390,7 @@ def main():
     
     #    - GV
     if use_gv:
-        logger.info("Global variance unseen model bulding")
+        logger.info("Global variance unseen model building")
         cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
             (TRAIN_CONFIG, args.gvDir + '/clustered.mmf', TMP_GV_MMF,
                 GV_HED_UNSEEN_BASE + '.hed', args.gvDir + '/gv.list')
