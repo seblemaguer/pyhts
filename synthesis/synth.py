@@ -218,13 +218,13 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
 ################################################################################
 
 # TODO : add post-filtering functions
-# def postFilteringMCP(base, outdir):
+# def post_filtering_mcp(base, outdir):
 #     """
 #     """
-#     strPF_MCP = "%f" % SIGNAL['PF_MCP']
-#     cmd = "echo 1 1 %s | x2x +af > %s/weights" % (' '.join([strPF_MCP] * MGC_ORDER), outdir)
+#     str_pf_mcp = "%f" % SIGNAL['PF_MCP']
+#     cmd = "echo 1 1 %s | x2x +af > %s/weights" % (' '.join([str_pf_mcp] * ORDER['MGC']), outdir)
 
-#     # FIXME: finish but not needed for the moment
+#     # TODO: finish but not needed for the moment
 #     pass
 
 #     # # Clean
@@ -254,11 +254,11 @@ def parameter_conversion(outdir, base_list):
         with open("%s/%s.sp" % (outdir, base), 'w') as f:
             subprocess.call(cmd.split(" "), stdout=f)
 
-        # # Clean [FIXME: do with options]
+        # # Clean [TODO: do with options]
         # os.remove("%s/%s.lf0" % (outdir, base))
         # os.remove("%s/%s.mgc" % (outdir, base))
         # os.remove("%s/%s.bap" % (outdir, base))
-        # os.remove("%s/%s.dur" % (outdir, base))     # FIXME : must be an option in the synth config
+        # os.remove("%s/%s.dur" % (outdir, base))     # TODO : must be an option in the synth config
 
 
 def straight_generation(outdir, base_list):
@@ -302,7 +302,7 @@ def straight_generation(outdir, base_list):
     cmd = "matlab -nojvm -nosplash -nodisplay < %s" % STRAIGHT_SCRIPT
     subprocess.call(cmd.split(' '), stdout=out_handle)
 
-    # # Clean  [FIXME: do with options]
+    # # Clean  [TODO: do with options]
     # os.remove(STRAIGHT_SCRIPT)
     # for base in base_list:
     #     os.remove('%s/%s.sp' % (outdir, base))
