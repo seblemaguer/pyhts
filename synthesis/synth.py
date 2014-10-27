@@ -347,12 +347,12 @@ def main():
     """
     global args, logger, out_handle
 
-    use_gv = args.gvDir
+    use_gv = args.gv_dir
     outdir = os.path.abspath(args.output)
 
     # 0. Generate list file
     list_input_files = TMP_LABELS_LIST_FN
-    if args.synthList:
+    if args.synth_list:
         list_input_files = args.input
     else:
         with open(list_input_files, 'w') as f:
@@ -372,34 +372,34 @@ def main():
     generate_synthesis_configuration(use_gv)
 
     # 2. Generate scripts
-    mk_unseen_script(args.cmpTreeDir, args.durTreeDir, use_gv, args.gvDir)
+    mk_unseen_script(args.cmp_tree_dir, args.dur_tree_dir, use_gv, args.gv_dir)
 
     # 3. Compose models
     #    - CMP
     logger.info("CMP unseen model building")
     cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (TRAIN_CONFIG, args.cmpModelFn, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed",
-         args.inputList)
+        (TRAIN_CONFIG, args.cmp_model_fn, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed",
+         args.input_list)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     #    - DUR
     logger.info("Duration unseen model building")
     cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (TRAIN_CONFIG, args.durModelFn, TMP_DUR_MMF,
-            TYPE_HED_UNSEEN_BASE + '_dur.hed', args.inputList)
+        (TRAIN_CONFIG, args.dur_model_fn, TMP_DUR_MMF,
+            TYPE_HED_UNSEEN_BASE + '_dur.hed', args.input_list)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     
     #    - GV
     if use_gv:
         logger.info("Global variance unseen model building")
         cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-            (TRAIN_CONFIG, args.gvDir + '/clustered.mmf', TMP_GV_MMF,
-                GV_HED_UNSEEN_BASE + '.hed', args.gvDir + '/gv.list')
+            (TRAIN_CONFIG, args.gv_dir + '/clustered.mmf', TMP_GV_MMF,
+                GV_HED_UNSEEN_BASE + '.hed', args.gv_dir + '/gv.list')
         subprocess.call(cmd.split(' '), stdout=out_handle)
 
     # 4. Generate parameters
     logger.info("Parameter generation")
     cmd = "HMGenS -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s" % \
-        (SYNTH_CONFIG, list_input_files, HMM['BEAM_STEPS'], int(args.pgType),
+        (SYNTH_CONFIG, list_input_files, HMM['BEAM_STEPS'], int(args.pg_type),
             TMP_CMP_MMF, TMP_DUR_MMF, outdir,
             TYPE_TIED_LIST_BASE + '_cmp', TYPE_TIED_LIST_BASE + '_dur')
     subprocess.call(cmd.split(' '), stdout=out_handle)
@@ -425,24 +425,24 @@ if __name__ == '__main__':
                           default=False, help='verbose output')
 
         # models
-        argp.add_argument('-m', '--cmp', dest='cmpModelFn',
+        argp.add_argument('-m', '--cmp', dest='cmp_model_fn',
                           help="cmp model file", metavar="FILE")
-        argp.add_argument('-d', '--dur', dest='durModelFn',
+        argp.add_argument('-d', '--dur', dest='dur_model_fn',
                           help="duration model file", metavar="FILE")
-        argp.add_argument('-l', '--list', dest='inputList',
+        argp.add_argument('-l', '--list', dest='input_list',
                           help="input list file", metavar="FILE")
-        argp.add_argument('-t', '--cmp_tree', dest='cmpTreeDir',
+        argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir',
                           help="directory which contains the coefficient trees")
-        argp.add_argument('-u', '--dur_tree', dest='durTreeDir',
+        argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir',
                           help="directory which contains the duration tree")
 
         # Options
-        argp.add_argument('-s', '--with_scp', dest='synthList', action='store_true',
+        argp.add_argument('-s', '--with_scp', dest='synth_list', action='store_true',
                           default=False, help="the input is a scp formatted file")
-        argp.add_argument('-g', '--gv', dest='gvDir',
+        argp.add_argument('-g', '--gv', dest='gv_dir',
                           help="Define the global variance model directory")
 
-        argp.add_argument('-p', '--pg_type', dest='pgType',
+        argp.add_argument('-p', '--pg_type', dest='pg_type',
                           help="parameter generation type")
         # input/output
         argp.add_argument('-i', '--input', dest='input',
