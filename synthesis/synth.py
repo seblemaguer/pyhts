@@ -8,22 +8,24 @@ SYNOPSIS
 
 DESCRIPTION
 
-    TODO This describes how to use this script. This docstring
-    will be printed by the script if there is an error or
-    if the user requests help (-h or --help).
+    **TODO** This describes how to use this script. This docstring
+        will be printed by the script if there is an error or
+        if the user requests help (-h or --help).
 
 EXAMPLES
 
-    TODO: Show some examples of how to use this script.
+    %run /Volumes/Python/pyhts/synthesis/synth.py
+            -m models/qst001/ver1/cmp/re_clustered_all.mmf.1mix
+            -d models/qst001/ver1/dur/re_clustered_all.mmf.1mix
 
 EXIT STATUS
 
-    TODO: List exit codes
+    **TODO** List exit codes
 
 AUTHORS
 
-    Sébastien Le Maguer <sebastien.le_maguer@irisa.fr>
-    Marc Evrard <marc.evrard@limsi.fr>
+    Sébastien Le Maguer     <sebastien.le_maguer@irisa.fr>
+    Marc Evrard             <marc.evrard@limsi.fr>
 
 LICENSE
 
@@ -445,10 +447,11 @@ if __name__ == '__main__':
         argp.add_argument('-p', '--pg_type', dest='pg_type',
                           help="parameter generation type")
         # input/output
-        argp.add_argument('-i', '--input', dest='input',
+        argp.add_argument('-i', '--input', dest='input', required=True,
                           help="input label file", metavar='FILE')
-        argp.add_argument('-o', '--output', dest='output',
+        argp.add_argument('-o', '--output', dest='output', required=True,
                           help="output wav directory", metavar='FILE')
+
         args = argp.parse_args()
 
         # Debug time
