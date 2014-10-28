@@ -67,7 +67,7 @@ def generate_label_list(input_label_list):
                 lab = p.split(cur_line)[2]
                 full_set.add(lab)
 
-    with open(LABEL_LIST_FN, 'w') as f_list:
+    with open(LABEL_LIST_FNAME, 'w') as f_list:
         f_list.write('\n'.join(full_set))
 
 
@@ -175,7 +175,7 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
 
             # Make unseen
             f.write("// Make unseen\n")
-            f.write("AU \"%s\"\n\n" % LABEL_LIST_FN)
+            f.write("AU \"%s\"\n\n" % LABEL_LIST_FNAME)
 
             # Compact model
             f.write("// Compact\n")
@@ -192,7 +192,7 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
 
         # Make unseen
         f.write("// Make unseen\n")
-        f.write("AU \"%s\"\n\n" % LABEL_LIST_FN)
+        f.write("AU \"%s\"\n\n" % LABEL_LIST_FNAME)
 
         # Compact model
         f.write("// Compact\n")
@@ -208,7 +208,7 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
 
         # Make unseen
         f.write("// Make unseen\n")
-        f.write("AU \"%s\"\n\n" % LABEL_LIST_FN)
+        f.write("AU \"%s\"\n\n" % LABEL_LIST_FNAME)
 
         # Compact model
         f.write("// Compact\n")
@@ -353,16 +353,16 @@ def main():
     outdir = os.path.abspath(args.output)
 
     # 0. Generate list file
-    list_input_files = TMP_LABELS_LIST_FN
-    if args.synth_list:
-        list_input_files = args.input
+    in_lab_list_fname = TMP_IN_LAB_LIST_FNAME
+    if args.in_lab_list_fname:
+        in_lab_list_fname = args.in_lab_list_fname
     else:
-        with open(list_input_files, 'w') as f:
-            f.write(args.input + '\n')
+        with open(in_lab_list_fname, 'w') as f:
+            f.write(args.input_fname + '\n')
 
     base_list = []
     label_fn_list = []
-    with open(list_input_files) as f:
+    with open(in_lab_list_fname) as f:
         for line in f:
             label_fn_list.append(line.strip())
             base_list.append(os.path.splitext(os.path.basename(line.strip()))[0])
@@ -401,7 +401,7 @@ def main():
     # 4. Generate parameters
     logger.info("Parameter generation")
     cmd = "HMGenS -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s" % \
-        (SYNTH_CONFIG, list_input_files, HMM['BEAM_STEPS'], int(args.pg_type),
+        (SYNTH_CONFIG, in_lab_list_fname, HMM['BEAM_STEPS'], int(args.pg_type),
             TMP_CMP_MMF, TMP_DUR_MMF, outdir,
             TYPE_TIED_LIST_BASE + '_cmp', TYPE_TIED_LIST_BASE + '_dur')
     subprocess.call(cmd.split(' '), stdout=out_handle)
@@ -431,15 +431,13 @@ if __name__ == '__main__':
                           help="cmp model file", metavar="FILE")
         argp.add_argument('-d', '--dur', dest='dur_model_fn',
                           help="duration model file", metavar="FILE")
-        argp.add_argument('-l', '--list', dest='input_list',
-                          help="input list file", metavar="FILE")
         argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir',
                           help="directory which contains the coefficient trees")
         argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir',
                           help="directory which contains the duration tree")
 
         # Options
-        argp.add_argument('-s', '--with_scp', dest='synth_list', action='store_true',
+        argp.add_argument('-s', '--with_scp', dest='in_lab_list_fname', action='store_true',
                           default=False, help="the input is a scp formatted file")
         argp.add_argument('-g', '--gv', dest='gv_dir',
                           help="Define the global variance model directory")
@@ -447,8 +445,13 @@ if __name__ == '__main__':
         argp.add_argument('-p', '--pg_type', dest='pg_type',
                           help="parameter generation type")
         # input/output
-        argp.add_argument('-i', '--input', dest='input', required=True,
-                          help="input label file", metavar='FILE')
+        argp_input = argp.add_mutually_exclusive_group(required=True)
+
+        argp_input.add_argument('-l', '--list', dest='in_lab_list_fname',
+                                help="input list file", metavar="FILE")
+        argp_input.add_argument('-i', '--input', dest='input_fname',
+                                help="input label file", metavar='FILE')
+
         argp.add_argument('-o', '--output', dest='output', required=True,
                           help="output wav directory", metavar='FILE')
 
