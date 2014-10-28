@@ -233,11 +233,11 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
 #     # os.remove("%s/weights" % outdir)
 
 
-def parameter_conversion(outdir, base_list):
+def parameter_conversion(outdir, in_lab_base_lst):
     """
     Convert parameter to STRAIGHT params
     """
-    for base in base_list:
+    for base in in_lab_base_lst:
         # lf0 => f0
         cmd = "sopr -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0" % \
             (outdir, base)
@@ -263,7 +263,7 @@ def parameter_conversion(outdir, base_list):
         # os.remove("%s/%s.dur" % (outdir, base))     # TODO : must be an option in the synth config
 
 
-def straight_generation(outdir, base_list):
+def straight_generation(outdir, in_lab_base_lst):
     """
     """
     global out_handle
@@ -276,7 +276,7 @@ def straight_generation(outdir, base_list):
         f.write("prm.levelNormalizationIndicator = 0;\n\n")
 
         # Read STRAIGHT params
-        for base in base_list:
+        for base in in_lab_base_lst:
             f.write("fid_sp = fopen('%s/%s.sp', 'r', 'ieee-le');\n" % (outdir, base))
             f.write("fid_ap = fopen('%s/%s.ap', 'r', 'ieee-le');\n" % (outdir, base))
             f.write("fid_f0 = fopen('%s/%s.f0', 'r', 'ieee-le');\n" % (outdir, base))
@@ -306,7 +306,7 @@ def straight_generation(outdir, base_list):
 
     # # Clean  [TODO: do with options]
     # os.remove(STRAIGHT_SCRIPT)
-    # for base in base_list:
+    # for base in in_lab_base_lst:
     #     os.remove('%s/%s.sp' % (outdir, base))
     #     os.remove('%s/%s.ap' % (outdir, base))
     #     os.remove('%s/%s.f0' % (outdir, base))
@@ -360,14 +360,14 @@ def main():
         with open(in_lab_list_fname, 'w') as f:
             f.write(args.input_fname + '\n')
 
-    base_list = []
-    label_fn_list = []
+    in_lab_base_lst = []
+    in_lab_fname_lst = []
     with open(in_lab_list_fname) as f:
         for line in f:
-            label_fn_list.append(line.strip())
-            base_list.append(os.path.splitext(os.path.basename(line.strip()))[0])
+            in_lab_fname_lst.append(line.strip())
+            in_lab_base_lst.append(os.path.splitext(os.path.basename(line.strip()))[0])
     
-    generate_label_list(label_fn_list)
+    generate_label_list(in_lab_fname_lst)
 
     # 1. Generate configs
     generate_training_configuration()
@@ -408,10 +408,10 @@ def main():
 
     # 5. Call straight to synthesize
     logger.info("Parameter conversion (could be quite long)")
-    parameter_conversion(outdir, base_list)
+    parameter_conversion(outdir, in_lab_base_lst)
     
     logger.info("Audio rendering (could be quite long)")
-    straight_generation(outdir, base_list)
+    straight_generation(outdir, in_lab_base_lst)
 
 
 ################################################################################
