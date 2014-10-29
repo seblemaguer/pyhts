@@ -56,19 +56,19 @@ def generate_label_list(input_label_list):
     """
     Generate the label list file to get it through the tree
     """
-    p = re.compile('[ \t]+')
+    pattern = re.compile('[ \t]+')
     full_set = set()
 
     # Fullcontext list (Training + generation)
     for input_label in input_label_list:
-        with open(input_label) as cur_lab_file:
-            for cur_line in cur_lab_file:
-                cur_line = cur_line.strip()
-                lab = p.split(cur_line)[2]
+        with open(input_label) as lab_file:
+            for line in lab_file:
+                line = line.strip()
+                lab = pattern.split(line)[2]
                 full_set.add(lab)
 
-    with open(LABEL_LIST_FNAME, 'w') as f_list:
-        f_list.write('\n'.join(full_set))
+    with open(LABEL_LIST_FNAME, 'w') as list_file:
+        list_file.write('\n'.join(full_set))
 
 
 def generate_training_configuration():
@@ -233,11 +233,11 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
 #     # os.remove("%s/weights" % outdir)
 
 
-def parameter_conversion(outdir, in_lab_base_lst):
+def parameter_conversion(outdir, gen_labfile_base_lst):
     """
     Convert parameter to STRAIGHT params
     """
-    for base in in_lab_base_lst:
+    for base in gen_labfile_base_lst:
         # lf0 => f0
         cmd = "sopr -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0" % \
             (outdir, base)
@@ -263,7 +263,7 @@ def parameter_conversion(outdir, in_lab_base_lst):
         # os.remove("%s/%s.dur" % (outdir, base))     # TODO : must be an option in the synth config
 
 
-def straight_generation(outdir, in_lab_base_lst):
+def straight_generation(outdir, gen_labfile_base_lst):
     """
     """
     global out_handle
@@ -276,7 +276,7 @@ def straight_generation(outdir, in_lab_base_lst):
         f.write("prm.levelNormalizationIndicator = 0;\n\n")
 
         # Read STRAIGHT params
-        for base in in_lab_base_lst:
+        for base in gen_labfile_base_lst:
             f.write("fid_sp = fopen('%s/%s.sp', 'r', 'ieee-le');\n" % (outdir, base))
             f.write("fid_ap = fopen('%s/%s.ap', 'r', 'ieee-le');\n" % (outdir, base))
             f.write("fid_f0 = fopen('%s/%s.f0', 'r', 'ieee-le');\n" % (outdir, base))
@@ -306,7 +306,7 @@ def straight_generation(outdir, in_lab_base_lst):
 
     # # Clean  [TODO: do with options]
     # os.remove(STRAIGHT_SCRIPT)
-    # for base in in_lab_base_lst:
+    # for base in gen_labfile_base_lst:
     #     os.remove('%s/%s.sp' % (outdir, base))
     #     os.remove('%s/%s.ap' % (outdir, base))
     #     os.remove('%s/%s.f0' % (outdir, base))
@@ -353,21 +353,21 @@ def main():
     outdir = os.path.abspath(args.output)
 
     # 0. Generate list file
-    in_lab_list_fname = TMP_IN_LAB_LIST_FNAME
-    if args.in_lab_list_fname:
-        in_lab_list_fname = args.in_lab_list_fname
+    gen_labfile_list_fname = TMP_GEN_LABFILE_LIST_FNAME
+    if args.input_is_list:
+        gen_labfile_list_fname = args.input_fname
     else:
-        with open(in_lab_list_fname, 'w') as f:
+        with open(gen_labfile_list_fname, 'w') as f:
             f.write(args.input_fname + '\n')
 
-    in_lab_base_lst = []
-    in_lab_fname_lst = []
-    with open(in_lab_list_fname) as f:
+    gen_labfile_base_lst = []
+    gen_labfile_lst = []
+    with open(gen_labfile_list_fname) as f:
         for line in f:
-            in_lab_fname_lst.append(line.strip())
-            in_lab_base_lst.append(os.path.splitext(os.path.basename(line.strip()))[0])
+            gen_labfile_lst.append(line.strip())
+            gen_labfile_base_lst.append(os.path.splitext(os.path.basename(line.strip()))[0])
     
-    generate_label_list(in_lab_fname_lst)
+    generate_label_list(gen_labfile_lst)
 
     # 1. Generate configs
     generate_training_configuration()
@@ -381,13 +381,13 @@ def main():
     logger.info("CMP unseen model building")
     cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
         (TRAIN_CONFIG, args.cmp_model_fn, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed",
-         args.input_list)
+         args.full_list_fname)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     #    - DUR
     logger.info("Duration unseen model building")
     cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
         (TRAIN_CONFIG, args.dur_model_fn, TMP_DUR_MMF,
-            TYPE_HED_UNSEEN_BASE + '_dur.hed', args.input_list)
+            TYPE_HED_UNSEEN_BASE + '_dur.hed', args.full_list_fname)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     
     #    - GV
@@ -401,17 +401,17 @@ def main():
     # 4. Generate parameters
     logger.info("Parameter generation")
     cmd = "HMGenS -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s" % \
-        (SYNTH_CONFIG, in_lab_list_fname, HMM['BEAM_STEPS'], int(args.pg_type),
+        (SYNTH_CONFIG, gen_labfile_list_fname, HMM['BEAM_STEPS'], int(args.pg_type),
             TMP_CMP_MMF, TMP_DUR_MMF, outdir,
             TYPE_TIED_LIST_BASE + '_cmp', TYPE_TIED_LIST_BASE + '_dur')
     subprocess.call(cmd.split(' '), stdout=out_handle)
 
     # 5. Call straight to synthesize
     logger.info("Parameter conversion (could be quite long)")
-    parameter_conversion(outdir, in_lab_base_lst)
+    parameter_conversion(outdir, gen_labfile_base_lst)
     
     logger.info("Audio rendering (could be quite long)")
-    straight_generation(outdir, in_lab_base_lst)
+    straight_generation(outdir, gen_labfile_base_lst)
 
 
 ################################################################################
@@ -428,32 +428,28 @@ if __name__ == '__main__':
 
         # models
         argp.add_argument('-m', '--cmp', dest='cmp_model_fn',
-                          help="cmp model file", metavar="FILE")
+                          help="CMP model file", metavar="FILE")
         argp.add_argument('-d', '--dur', dest='dur_model_fn',
-                          help="duration model file", metavar="FILE")
+                          help="Duration model file", metavar="FILE")
+        argp.add_argument('-l', '--list', dest='full_list_fname', required=True,
+                          help="Label list training lab files", metavar="FILE")
         argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir',
-                          help="directory which contains the coefficient trees")
+                          help="Directory which contains the coefficient trees")
         argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir',
-                          help="directory which contains the duration tree")
-
+                          help="Directory which contains the duration tree")
         # Options
-        argp.add_argument('-s', '--with_scp', dest='in_lab_list_fname', action='store_true',
+        argp.add_argument('-s', '--with_scp', dest='input_is_list', action='store_true',
                           default=False, help="the input is a scp formatted file")
         argp.add_argument('-g', '--gv', dest='gv_dir',
                           help="Define the global variance model directory")
 
         argp.add_argument('-p', '--pg_type', dest='pg_type',
-                          help="parameter generation type")
+                          help="Parameter generation type")
         # input/output
-        argp_input = argp.add_mutually_exclusive_group(required=True)
-
-        argp_input.add_argument('-l', '--list', dest='in_lab_list_fname',
-                                help="input list file", metavar="FILE")
-        argp_input.add_argument('-i', '--input', dest='input_fname',
-                                help="input label file", metavar='FILE')
-
+        argp.add_argument('-i', '--input', dest='input_fname',
+                          help="Input lab file for synthesis", metavar='FILE')
         argp.add_argument('-o', '--output', dest='output', required=True,
-                          help="output wav directory", metavar='FILE')
+                          help="Output wav directory", metavar='FILE')
 
         args = argp.parse_args()
 

@@ -46,8 +46,8 @@ SYNTH_CONFIG = os.path.join(TMP_DIR, "synth%d.cfg" % os.getpid())
 # Lists
 GV_TIED_LIST_TMP = os.path.join(TMP_DIR, "tiedlist_%d_gv" % os.getpid())
 TYPE_TIED_LIST_BASE = os.path.join(TMP_DIR, "tiedlist_%d" % os.getpid())
-LABEL_LIST_FNAME = os.path.join(TMP_DIR, "list_all%d" % os.getpid())
-TMP_IN_LAB_LIST_FNAME = os.path.join(TMP_DIR, "list_input_labels%d" % os.getpid())
+LABEL_LIST_FNAME = os.path.join(TMP_DIR, "list_all_%d" % os.getpid())
+TMP_GEN_LABFILE_LIST_FNAME = os.path.join(TMP_DIR, "list_input_labels_%d" % os.getpid())
 
 # Tmp Scripts
 GV_HED_UNSEEN_BASE = os.path.join(TMP_DIR, "mku_%d_gv" % os.getpid())
