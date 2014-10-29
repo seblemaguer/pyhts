@@ -82,13 +82,13 @@ def generate_training_configuration():
 
         # Variance floor options
         f.write("APPLYVFLOOR = T\n")
-        f.write("VFLOORSCALESTR = \"Vector %d " % (max([STRE[cur_type] for cur_type in TYPE_MAP['CMP']])))
+        f.write("VFLOORSCALESTR = \"Vector %d " % (max([int(STRE[cur_type]) for cur_type in TYPE_MAP['CMP']])))
         for cur_type in TYPE_MAP['CMP']:
-            f.write(" ".join(['%f' % VFLR[cur_type]] * (STRE[cur_type] - STRB[cur_type] + 1)))
+            f.write(" ".join(['%f' % float(VFLR[cur_type])] * (int(STRE[cur_type]) - int(STRB[cur_type]) + 1)))
 
         f.write("\"\n")
         f.write("APPLYDURVARFLOOR = T\n")
-        f.write("DURVARFLOORPERCENTILE = %f\n" % (100 * VFLR['DUR']))
+        f.write("DURVARFLOORPERCENTILE = %f\n" % (100 * float(VFLR['DUR'])))
 
         # Duration specific
         f.write("MAXSTDDEVCOEF = %s\n" % GEN['MAXDEV_HSMM'])
@@ -113,7 +113,7 @@ def generate_synthesis_configuration(use_gv):
         # Counting streams
         f.write("PDFSTRSIZE = \"IntVec %d" % len(TYPE_MAP['CMP']))    # PdfStream structure
         for cur_type in TYPE_MAP['CMP']:
-            f.write(' %d' % (STRE[cur_type] - STRB[cur_type] + 1))
+            f.write(' %d' % (int(STRE[cur_type]) - int(STRB[cur_type]) + 1))
         f.write("\"\n")
 
         # Order of each coefficients
@@ -129,8 +129,8 @@ def generate_synthesis_configuration(use_gv):
         f.write("WINFN = \"")
         for cur_type in TYPE_MAP['CMP']:
             # FIXME in the middle of the source => move
-            win_fn = " ".join("%s.win%d" % (cur_type, d) for d in range(1, NWIN[cur_type] + 1))
-            f.write(" StrVec %d %s" % (NWIN[cur_type], win_fn))
+            win_fn = " ".join("%s.win%d" % (cur_type, d) for d in range(1, int(NWIN[cur_type]) + 1))
+            f.write(" StrVec %d %s" % (int(NWIN[cur_type]), win_fn))
         f.write("\"\n")
         f.write("WINDIR = %s\n" % WIN_PATH)
 

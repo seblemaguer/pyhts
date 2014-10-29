@@ -40,8 +40,8 @@ except FileExistsError:
 
 ## TMP PATHs
 # Configs
-TRAIN_CONFIG = os.path.join(TMP_DIR, "train%d.cfg" % os.getpid())
-SYNTH_CONFIG = os.path.join(TMP_DIR, "synth%d.cfg" % os.getpid())
+TRAIN_CONFIG = os.path.join(TMP_DIR, "train_%d.cfg" % os.getpid())
+SYNTH_CONFIG = os.path.join(TMP_DIR, "synth_%d.cfg" % os.getpid())
 
 # Lists
 GV_TIED_LIST_TMP = os.path.join(TMP_DIR, "tiedlist_%d_gv" % os.getpid())
