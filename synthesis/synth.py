@@ -130,8 +130,8 @@ def generate_synthesis_configuration(use_gv):
         f.write("WINFN = \"")
         for cur_type in TYPE_MAP['CMP']:
             # FIXME in the middle of the source => move
-            win_fn = " ".join("%s.win%d" % (cur_type, d) for d in range(1, int(NWIN[cur_type]) + 1))
-            f.write(" StrVec %d %s" % (int(NWIN[cur_type]), win_fn))
+            win_fname = " ".join("%s.win%d" % (cur_type, d) for d in range(1, int(NWIN[cur_type]) + 1))
+            f.write(" StrVec %d %s" % (int(NWIN[cur_type]), win_fname))
         f.write("\"\n")
         f.write("WINDIR = %s\n" % WIN_PATH)
 
@@ -160,7 +160,7 @@ def generate_synthesis_configuration(use_gv):
             f.write("USEGV      = FALSE\n")
 
 
-def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
+def mk_unseen_script(_cmp_tree_path, _dur_tree_path, use_gv, gv_dir=None):
     """
     Generate hed
     """
@@ -189,7 +189,7 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
         # Load trees
         f.write("// Load trees\n")
         for cur_type in TYPE_MAP['CMP']:
-            f.write("LT \"%s/%s.inf\"\n\n" % (cmp_tree_dir, cur_type))
+            f.write("LT \"%s/%s.inf\"\n\n" % (_cmp_tree_path, cur_type))
 
         # Make unseen
         f.write("// Make unseen\n")
@@ -199,13 +199,13 @@ def mk_unseen_script(cmp_tree_dir, dur_tree_dir, use_gv, gv_dir=None):
         f.write("// Compact\n")
         f.write("CO \"%s_cmp\"\n\n" % TYPE_TIED_LIST_BASE)
 
-    # CMP
+    # DUR
     with open("%s_dur.hed" % TYPE_HED_UNSEEN_BASE, "w") as f:
         f.write("\nTR 2\n\n")
 
         # Load trees
         f.write("// Load trees\n")
-        f.write("LT \"%s/dur.inf\"\n\n" % dur_tree_dir)
+        f.write("LT \"%s/dur.inf\"\n\n" % _dur_tree_path)
 
         # Make unseen
         f.write("// Make unseen\n")
@@ -267,8 +267,6 @@ def parameter_conversion(outdir, gen_labfile_base_lst):
 def straight_generation(outdir, gen_labfile_base_lst):
     """
     """
-    global out_handle
-    
     # Generate STRAIGHT script
     with open(STRAIGHT_SCRIPT, "w") as f:
         # Header
@@ -348,8 +346,6 @@ def main():
     """
     Main entry function
     """
-    global args, logger, out_handle
-
     use_gv = args.gv_dir
     outdir = os.path.abspath(args.output)
 
@@ -375,18 +371,18 @@ def main():
     generate_synthesis_configuration(use_gv)
 
     # 2. Generate scripts
-    mk_unseen_script(args.cmp_tree_dir, args.dur_tree_dir, use_gv, args.gv_dir)
+    mk_unseen_script(cmp_tree_path, dur_tree_path, use_gv, args.gv_dir)
 
     # 3. Compose models
     #    * CMP
     logger.info("CMP unseen model building")
     cmd = "%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (HHEd, TRAIN_CONFIG, args.cmp_model_fname, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed", args.full_list_fname)
+        (HHEd, TRAIN_CONFIG, cmp_model_fpath, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed", full_list_fpath)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     #    * DUR
     logger.info("Duration unseen model building")
     cmd = "%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (HHEd, TRAIN_CONFIG, args.dur_model_fn, TMP_DUR_MMF, TYPE_HED_UNSEEN_BASE + '_dur.hed', args.full_list_fname)
+        (HHEd, TRAIN_CONFIG, dur_model_fpath, TMP_DUR_MMF, TYPE_HED_UNSEEN_BASE + '_dur.hed', full_list_fpath)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     
     #    * GV
@@ -425,31 +421,37 @@ if __name__ == '__main__':
                           default=False, help='verbose output')
 
         # models
-        argp.add_argument('-m', '--cmp', dest='cmp_model_fname',
+        argp.add_argument('-m', '--cmp', dest='cmp_model_fname', required=True,
                           help="CMP model file", metavar="FILE")
-        argp.add_argument('-d', '--dur', dest='dur_model_fn',
+        argp.add_argument('-d', '--dur', dest='dur_model_fname', required=True,
                           help="Duration model file", metavar="FILE")
         argp.add_argument('-l', '--list', dest='full_list_fname', required=True,
                           help="Label list training lab files", metavar="FILE")
-        argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir',
+        argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir', required=True,
                           help="Directory which contains the coefficient trees")
-        argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir',
+        argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir', required=True,
                           help="Directory which contains the duration tree")
         # Options
         argp.add_argument('-s', '--with_scp', dest='input_is_list', action='store_true',
                           default=False, help="the input is a scp formatted file")
         argp.add_argument('-g', '--gv', dest='gv_dir',
                           help="Define the global variance model directory")
-
         argp.add_argument('-p', '--pg_type', dest='pg_type',
                           help="Parameter generation type")
         # input/output
-        argp.add_argument('-i', '--input', dest='input_fname',
+        argp.add_argument('-i', '--input', dest='input_fname', required=True,
                           help="Input lab file for synthesis", metavar='FILE')
         argp.add_argument('-o', '--output', dest='output', required=True,
                           help="Output wav directory", metavar='FILE')
 
         args = argp.parse_args()
+
+        # PATHs
+        cmp_model_fpath = os.path.join(CWD_PATH, args.cmp_model_fname)
+        dur_model_fpath = os.path.join(CWD_PATH, args.dur_model_fname)
+        full_list_fpath = os.path.join(CWD_PATH, args.full_list_fname)
+        cmp_tree_path = os.path.join(CWD_PATH, args.cmp_tree_dir)
+        dur_tree_path = os.path.join(CWD_PATH, args.dur_tree_dir)
 
         # Debug time
         logger = setup_logging(args.verbose)
