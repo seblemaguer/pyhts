@@ -17,6 +17,7 @@ EXAMPLES
     %run /Volumes/Python/pyhts/synthesis/synth.py
             -m models/qst001/ver1/cmp/re_clustered_all.mmf.1mix
             -d models/qst001/ver1/dur/re_clustered_all.mmf.1mix
+            -o OUT_WAV -i limsi_fr_tat_0001.lab -l full.list
 
 EXIT STATUS
 
@@ -377,33 +378,30 @@ def main():
     mk_unseen_script(args.cmp_tree_dir, args.dur_tree_dir, use_gv, args.gv_dir)
 
     # 3. Compose models
-    #    - CMP
+    #    * CMP
     logger.info("CMP unseen model building")
-    cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (TRAIN_CONFIG, args.cmp_model_fn, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed",
-         args.full_list_fname)
+    cmd = "%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
+        (HHEd, TRAIN_CONFIG, args.cmp_model_fname, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed", args.full_list_fname)
     subprocess.call(cmd.split(' '), stdout=out_handle)
-    #    - DUR
+    #    * DUR
     logger.info("Duration unseen model building")
-    cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (TRAIN_CONFIG, args.dur_model_fn, TMP_DUR_MMF,
-            TYPE_HED_UNSEEN_BASE + '_dur.hed', args.full_list_fname)
+    cmd = "%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
+        (HHEd, TRAIN_CONFIG, args.dur_model_fn, TMP_DUR_MMF, TYPE_HED_UNSEEN_BASE + '_dur.hed', args.full_list_fname)
     subprocess.call(cmd.split(' '), stdout=out_handle)
     
-    #    - GV
+    #    * GV
     if use_gv:
         logger.info("Global variance unseen model building")
-        cmd = "HHEd -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-            (TRAIN_CONFIG, args.gv_dir + '/clustered.mmf', TMP_GV_MMF,
-                GV_HED_UNSEEN_BASE + '.hed', args.gv_dir + '/gv.list')
+        cmd = "%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
+            (HHEd, TRAIN_CONFIG, args.gv_dir + '/clustered.mmf', TMP_GV_MMF, GV_HED_UNSEEN_BASE + '.hed',
+             args.gv_dir + '/gv.list')
         subprocess.call(cmd.split(' '), stdout=out_handle)
 
     # 4. Generate parameters
     logger.info("Parameter generation")
-    cmd = "HMGenS -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s" % \
-        (SYNTH_CONFIG, gen_labfile_list_fname, HMM['BEAM_STEPS'], int(args.pg_type),
-            TMP_CMP_MMF, TMP_DUR_MMF, outdir,
-            TYPE_TIED_LIST_BASE + '_cmp', TYPE_TIED_LIST_BASE + '_dur')
+    cmd = "%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s" % \
+        (HMGenS, SYNTH_CONFIG, gen_labfile_list_fname, HMM['BEAM_STEPS'], int(args.pg_type), TMP_CMP_MMF, TMP_DUR_MMF,
+         outdir, TYPE_TIED_LIST_BASE + '_cmp', TYPE_TIED_LIST_BASE + '_dur')
     subprocess.call(cmd.split(' '), stdout=out_handle)
 
     # 5. Call straight to synthesize
@@ -427,7 +425,7 @@ if __name__ == '__main__':
                           default=False, help='verbose output')
 
         # models
-        argp.add_argument('-m', '--cmp', dest='cmp_model_fn',
+        argp.add_argument('-m', '--cmp', dest='cmp_model_fname',
                           help="CMP model file", metavar="FILE")
         argp.add_argument('-d', '--dur', dest='dur_model_fn',
                           help="Duration model file", metavar="FILE")
@@ -455,10 +453,10 @@ if __name__ == '__main__':
 
         # Debug time
         logger = setup_logging(args.verbose)
-        out_handle = open(os.devnull, 'w')
         if args.verbose:
-            out_handle.close()
             out_handle = sys.stdout
+        else:
+            out_handle = subprocess.DEVNULL
         
         # Debug time
         start_time = time.time()

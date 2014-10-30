@@ -6,10 +6,11 @@ import os
 import configparser as cfp
 
 
-TMP_DIR = 'tmp'
 THIS_PATH = os.path.dirname(os.path.realpath(__file__))
 PYHTS_PATH = os.path.join(THIS_PATH, os.pardir)
+CWD_PATH = os.getcwd()
 
+TMP_PATH = os.path.join(CWD_PATH, 'tmp')
 
 ################################################################################
 ### Config
@@ -32,32 +33,35 @@ STRB = cfg['STRB']
 STRE = cfg['STRE']
 NWIN = cfg['NWIN']
 
-# Create TMP_DIR if it doesn't exist
+HHEd = os.path.join(PATH['HTS'], 'HHEd')
+HMGenS = os.path.join(PATH['HTS'], 'HMGenS')
+
+# Create TMP_PATH if it doesn't exist
 try:
-    os.mkdir(TMP_DIR)
+    os.mkdir(TMP_PATH)
 except FileExistsError:
     pass
 
 ## TMP PATHs
 # Configs
-TRAIN_CONFIG = os.path.join(TMP_DIR, "train_%d.cfg" % os.getpid())
-SYNTH_CONFIG = os.path.join(TMP_DIR, "synth_%d.cfg" % os.getpid())
+TRAIN_CONFIG = os.path.join(TMP_PATH, "train_%d.cfg" % os.getpid())
+SYNTH_CONFIG = os.path.join(TMP_PATH, "synth_%d.cfg" % os.getpid())
 
 # Lists
-GV_TIED_LIST_TMP = os.path.join(TMP_DIR, "tiedlist_%d_gv" % os.getpid())
-TYPE_TIED_LIST_BASE = os.path.join(TMP_DIR, "tiedlist_%d" % os.getpid())
-LABEL_LIST_FNAME = os.path.join(TMP_DIR, "list_all_%d" % os.getpid())
-TMP_GEN_LABFILE_LIST_FNAME = os.path.join(TMP_DIR, "list_input_labels_%d" % os.getpid())
+GV_TIED_LIST_TMP = os.path.join(TMP_PATH, "tiedlist_%d_gv" % os.getpid())
+TYPE_TIED_LIST_BASE = os.path.join(TMP_PATH, "tiedlist_%d" % os.getpid())
+LABEL_LIST_FNAME = os.path.join(TMP_PATH, "list_all_%d" % os.getpid())
+TMP_GEN_LABFILE_LIST_FNAME = os.path.join(TMP_PATH, "list_input_labels_%d" % os.getpid())
 
 # Tmp Scripts
-GV_HED_UNSEEN_BASE = os.path.join(TMP_DIR, "mku_%d_gv" % os.getpid())
-TYPE_HED_UNSEEN_BASE = os.path.join(TMP_DIR, "mku_%d" % os.getpid())
-STRAIGHT_SCRIPT = os.path.join(TMP_DIR, "straight_%d.m" % os.getpid())
+GV_HED_UNSEEN_BASE = os.path.join(TMP_PATH, "mku_%d_gv" % os.getpid())
+TYPE_HED_UNSEEN_BASE = os.path.join(TMP_PATH, "mku_%d" % os.getpid())
+STRAIGHT_SCRIPT = os.path.join(TMP_PATH, "straight_%d.m" % os.getpid())
 
 # Models
-TMP_GV_MMF = os.path.join(TMP_DIR, "gv_%d.mmf" % os.getpid())
-TMP_CMP_MMF = os.path.join(TMP_DIR, "cmp_%d.mmf" % os.getpid())
-TMP_DUR_MMF = os.path.join(TMP_DIR, "dur_%d.mmf" % os.getpid())
+TMP_GV_MMF = os.path.join(TMP_PATH, "gv_%d.mmf" % os.getpid())
+TMP_CMP_MMF = os.path.join(TMP_PATH, "cmp_%d.mmf" % os.getpid())
+TMP_DUR_MMF = os.path.join(TMP_PATH, "dur_%d.mmf" % os.getpid())
 
 
 ## SIGNAL
