@@ -74,26 +74,27 @@ def generate_label_list(input_label_list):
 
 def generate_training_configuration():
     """
-    Generate "training configuration" => needed for the tree search
+    Generate 'training configuration' => needed for the tree search
     """
     # Training configuration
     with open(TRAIN_CONFIG, 'w') as f:
-        f.write("NATURALREADORDER = T\n")
-        f.write("NATURALWRITEORDER = T\n")
+        f.write('NATURALREADORDER = T\n')
+        f.write('NATURALWRITEORDER = T\n')
 
         # Variance floor options
-        f.write("APPLYVFLOOR = T\n")
-        f.write("VFLOORSCALESTR = \"Vector %d " % (max([int(STRE[cur_type]) for cur_type in TYPE_MAP['CMP']])))
+        f.write('APPLYVFLOOR = T\n')
+        f.write('VFLOORSCALESTR = "Vector %d' % (max([int(STRE[cur_type]) for cur_type in TYPE_MAP['CMP']])))
         for cur_type in TYPE_MAP['CMP']:
-            f.write(" ".join(['%f' % float(VFLR[cur_type])] * (int(STRE[cur_type]) - int(STRB[cur_type]) + 1)))
+            f.write(' ')
+            f.write(' '.join(['%s' % VFLR[cur_type]] * (int(STRE[cur_type]) - int(STRB[cur_type]) + 1)))
 
-        f.write("\"\n")
-        f.write("APPLYDURVARFLOOR = T\n")
-        f.write("DURVARFLOORPERCENTILE = %f\n" % (100 * float(VFLR['DUR'])))
+        f.write('"\n')
+        f.write('APPLYDURVARFLOOR = T\n')
+        f.write('DURVARFLOORPERCENTILE = %f\n' % (100 * float(VFLR['DUR'])))
 
         # Duration specific
-        f.write("MAXSTDDEVCOEF = %s\n" % GEN['MAXDEV_HSMM'])
-        f.write("MINDUR = %s\n" % GEN['MINDUR'])
+        f.write('MAXSTDDEVCOEF = %s\n' % GEN['MAXDEV_HSMM'])
+        f.write('MINDUR = %s\n' % GEN['MINDUR'])
 
 
 def generate_synthesis_configuration(use_gv):
@@ -106,58 +107,58 @@ def generate_synthesis_configuration(use_gv):
     with open(SYNTH_CONFIG, 'w') as f:
 
         # Global parameters
-        f.write("NATURALREADORDER = T\n")
-        f.write("NATURALWRITEORDER = T\n")
-        f.write("USEALIGN = T\n")
-        f.write("MAXEMITER = %s\n" % GEN['MAXEMITER'])
+        f.write('NATURALREADORDER = T\n')
+        f.write('NATURALWRITEORDER = T\n')
+        f.write('USEALIGN = T\n')
+        f.write('MAXEMITER = %s\n' % GEN['MAXEMITER'])
 
         # Counting streams
-        f.write("PDFSTRSIZE = \"IntVec %d" % len(TYPE_MAP['CMP']))    # PdfStream structure
+        f.write('PDFSTRSIZE = "IntVec %d' % len(TYPE_MAP['CMP']))    # PdfStream structure
         for cur_type in TYPE_MAP['CMP']:
             f.write(' %d' % (int(STRE[cur_type]) - int(STRB[cur_type]) + 1))
-        f.write("\"\n")
+        f.write('"\n')
 
         # Order of each coefficients
-        f.write("PDFSTRORDER = \"IntVec %d" % len(TYPE_MAP['CMP']))    # PdfStream structure
+        f.write('PDFSTRORDER = "IntVec %d' % len(TYPE_MAP['CMP']))    # PdfStream structure
         for cur_type in TYPE_MAP['CMP']:
             f.write(' %s' % (ORDER[cur_type]))
-        f.write("\"\n")
+        f.write('"\n')
 
         # Extension
-        f.write("PDFSTREXT = \"StrVec %d %s\"\n" % (len(TYPE_MAP['CMP']), ' '.join(TYPE_MAP['CMP'])))
+        f.write('PDFSTREXT = "StrVec %d %s"\n' % (len(TYPE_MAP['CMP']), ' '.join(TYPE_MAP['CMP'])))
 
         # Windows
-        f.write("WINFN = \"")
+        f.write('WINFN = "')
         for cur_type in TYPE_MAP['CMP']:
             # FIXME in the middle of the source => move
-            win_fname = " ".join("%s.win%d" % (cur_type, d) for d in range(1, int(NWIN[cur_type]) + 1))
-            f.write(" StrVec %d %s" % (int(NWIN[cur_type]), win_fname))
-        f.write("\"\n")
-        f.write("WINDIR = %s\n" % WIN_PATH)
+            win_fname = ' '.join('%s.win%d' % (cur_type, d) for d in range(1, int(NWIN[cur_type]) + 1))
+            f.write(' StrVec %d %s' % (int(NWIN[cur_type]), win_fname))
+        f.write('"\n')
+        f.write('WINDIR = %s\n' % WIN_PATH)
 
         # Global variance
         if use_gv:
-            f.write("EMEPSILON  = %f\n" % GEN['EMEPSILON'])
-            f.write("USEGV      = TRUE\n")
-            f.write("GVMODELMMF = %s\n" % TMP_GV_MMF)
-            f.write("GVHMMLIST  = %s\n" % GV_TIED_LIST_TMP)
-            f.write("MAXGVITER  = %d\n" % GEN['MAXGVITER'])
-            f.write("GVEPSILON  = %f\n" % GEN['GVEPSILON'])
-            f.write("MINEUCNORM = %f\n" % GEN['MINEUCNORM'])
-            f.write("STEPINIT   = %f\n" % GEN['STEPINIT'])
-            f.write("STEPINC    = %f\n" % GEN['STEPINC'])
-            f.write("STEPDEC    = %f\n" % GEN['STEPDEC'])
-            f.write("HMMWEIGHT  = %f\n" % GEN['HMMWEIGHT'])
-            f.write("GVWEIGHT   = %f\n" % GEN['GVWEIGHT'])
-            f.write("OPTKIND    = %s\n" % GEN['OPTKIND'])
+            f.write('EMEPSILON  = %f\n' % GEN['EMEPSILON'])
+            f.write('USEGV      = TRUE\n')
+            f.write('GVMODELMMF = %s\n' % TMP_GV_MMF)
+            f.write('GVHMMLIST  = %s\n' % GV_TIED_LIST_TMP)
+            f.write('MAXGVITER  = %d\n' % GEN['MAXGVITER'])
+            f.write('GVEPSILON  = %f\n' % GEN['GVEPSILON'])
+            f.write('MINEUCNORM = %f\n' % GEN['MINEUCNORM'])
+            f.write('STEPINIT   = %f\n' % GEN['STEPINIT'])
+            f.write('STEPINC    = %f\n' % GEN['STEPINC'])
+            f.write('STEPDEC    = %f\n' % GEN['STEPDEC'])
+            f.write('HMMWEIGHT  = %f\n' % GEN['HMMWEIGHT'])
+            f.write('GVWEIGHT   = %f\n' % GEN['GVWEIGHT'])
+            f.write('OPTKIND    = %s\n' % GEN['OPTKIND'])
 
-            f.write("GVOFFMODEL = \"StrVec %d %s\"\n" % (len(SLNT), " ".join(SLNT)))
+            f.write('GVOFFMODEL = "StrVec %d %s"\n' % (len(SLNT), ' '.join(SLNT)))
             if GV['CDGV']:
-                f.write("CDGV = TRUE\n")
+                f.write('CDGV = TRUE\n')
             else:
-                f.write("CDGV = FALSE\n")
+                f.write('CDGV = FALSE\n')
         else:
-            f.write("USEGV      = FALSE\n")
+            f.write('USEGV      = FALSE\n')
 
 
 def mk_unseen_script(_cmp_tree_path, _dur_tree_path, use_gv, gv_dir=None):
@@ -167,53 +168,53 @@ def mk_unseen_script(_cmp_tree_path, _dur_tree_path, use_gv, gv_dir=None):
     # Generate GV script
     if use_gv:
         with open(GV_HED_UNSEEN_BASE + '.hed', 'w') as f:
-            f.write("\nTR 2\n\n")
+            f.write('\nTR 2\n\n')
 
             # Load trees
-            f.write("// Load trees\n")
+            f.write('// Load trees\n')
             for cur_type in TYPE_MAP['CMP']:
-                f.write("LT \"%s/%s.inf\"\n\n" % (gv_dir, cur_type))
+                f.write('LT "%s/%s.inf"\n\n' % (gv_dir, cur_type))
 
             # Make unseen
-            f.write("// Make unseen\n")
-            f.write("AU \"%s\"\n\n" % LABEL_LIST_FNAME)
+            f.write('// Make unseen\n')
+            f.write('AU "%s"\n\n' % LABEL_LIST_FNAME)
 
             # Compact model
-            f.write("// Compact\n")
-            f.write("CO \"%s\"\n\n" % GV_TIED_LIST_TMP)
+            f.write('// Compact\n')
+            f.write('CO "%s"\n\n' % GV_TIED_LIST_TMP)
 
     # CMP
-    with open("%s_cmp.hed" % TYPE_HED_UNSEEN_BASE, 'w') as f:
-        f.write("\nTR 2\n\n")
+    with open('%s_cmp.hed' % TYPE_HED_UNSEEN_BASE, 'w') as f:
+        f.write('\nTR 2\n\n')
 
         # Load trees
-        f.write("// Load trees\n")
+        f.write('// Load trees\n')
         for cur_type in TYPE_MAP['CMP']:
-            f.write("LT \"%s/%s.inf\"\n\n" % (_cmp_tree_path, cur_type))
+            f.write('LT "%s/%s.inf"\n\n' % (_cmp_tree_path, cur_type))
 
         # Make unseen
-        f.write("// Make unseen\n")
-        f.write("AU \"%s\"\n\n" % LABEL_LIST_FNAME)
+        f.write('// Make unseen\n')
+        f.write('AU "%s"\n\n' % LABEL_LIST_FNAME)
 
         # Compact model
-        f.write("// Compact\n")
-        f.write("CO \"%s_cmp\"\n\n" % TYPE_TIED_LIST_BASE)
+        f.write('// Compact\n')
+        f.write('CO "%s_cmp"\n\n' % TYPE_TIED_LIST_BASE)
 
     # DUR
-    with open("%s_dur.hed" % TYPE_HED_UNSEEN_BASE, "w") as f:
-        f.write("\nTR 2\n\n")
+    with open('%s_dur.hed' % TYPE_HED_UNSEEN_BASE, 'w') as f:
+        f.write('\nTR 2\n\n')
 
         # Load trees
-        f.write("// Load trees\n")
-        f.write("LT \"%s/dur.inf\"\n\n" % _dur_tree_path)
+        f.write('// Load trees\n')
+        f.write('LT "%s/dur.inf"\n\n' % _dur_tree_path)
 
         # Make unseen
-        f.write("// Make unseen\n")
-        f.write("AU \"%s\"\n\n" % LABEL_LIST_FNAME)
+        f.write('// Make unseen\n')
+        f.write('AU "%s"\n\n' % LABEL_LIST_FNAME)
 
         # Compact model
-        f.write("// Compact\n")
-        f.write("CO \"%s_dur\"\n\n" % TYPE_TIED_LIST_BASE)
+        f.write('// Compact\n')
+        f.write('CO "%s_dur"\n\n' % TYPE_TIED_LIST_BASE)
 
 
 ################################################################################
@@ -224,14 +225,14 @@ def mk_unseen_script(_cmp_tree_path, _dur_tree_path, use_gv, gv_dir=None):
 # def post_filtering_mcp(base, outdir):
 #     """
 #     """
-#     str_pf_mcp = "%f" % SIGNAL['PF_MCP']
-#     cmd = "echo 1 1 %s | x2x +af > %s/weights" % (' '.join([str_pf_mcp] * ORDER['MGC']), outdir)
+#     str_pf_mcp = '%f' % SIGNAL['PF_MCP']
+#     cmd = 'echo 1 1 %s | x2x +af > %s/weights' % (' '.join([str_pf_mcp] * ORDER['MGC']), outdir)
 
 #     # TODO: finish but not needed for the moment
 #     pass
 
 #     # # Clean
-#     # os.remove("%s/weights" % outdir)
+#     # os.remove('%s/weights' % outdir)
 
 
 def parameter_conversion(outdir, gen_labfile_base_lst):
@@ -240,35 +241,35 @@ def parameter_conversion(outdir, gen_labfile_base_lst):
     """
     for base in gen_labfile_base_lst:
         # lf0 => f0
-        cmd = "sopr -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0" % \
+        cmd = 'sopr -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
             (outdir, base)
-        with open("%s/%s.f0" % (outdir, base), 'w') as f:
-            subprocess.call(cmd.split(" "), stdout=f)
+        with open('%s/%s.f0' % (outdir, base), 'w') as f:
+            subprocess.call(cmd.split(), stdout=f)
 
         # bap => aperiodicity
-        cmd = "mgc2sp -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap" % \
+        cmd = 'mgc2sp -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
             (FREQWARPING, ORDER['BAP']-1, outdir, base)
-        with open("%s/%s.ap" % (outdir, base), 'w') as f:
-            subprocess.call(cmd.split(" "), stdout=f)
+        with open('%s/%s.ap' % (outdir, base), 'w') as f:
+            subprocess.call(cmd.split(), stdout=f)
 
         # mgc => spectrum
-        cmd = "mgc2sp -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc" % \
+        cmd = 'mgc2sp -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
             (FREQWARPING, SIGNAL['GAMMA'], ORDER['MGC']-1, outdir, base)
-        with open("%s/%s.sp" % (outdir, base), 'w') as f:
-            subprocess.call(cmd.split(" "), stdout=f)
+        with open('%s/%s.sp' % (outdir, base), 'w') as f:
+            subprocess.call(cmd.split(), stdout=f)
 
         # # Clean [TODO: do with options]
-        # os.remove("%s/%s.lf0" % (outdir, base))
-        # os.remove("%s/%s.mgc" % (outdir, base))
-        # os.remove("%s/%s.bap" % (outdir, base))
-        # os.remove("%s/%s.dur" % (outdir, base))     # TODO : must be an option in the synth config
+        # os.remove('%s/%s.lf0' % (outdir, base))
+        # os.remove('%s/%s.mgc' % (outdir, base))
+        # os.remove('%s/%s.bap' % (outdir, base))
+        # os.remove('%s/%s.dur' % (outdir, base))     # TODO : must be an option in the synth config
 
 
 def straight_generation(outdir, gen_labfile_base_lst):
     """
     """
     # Generate STRAIGHT script
-    with open(STRAIGHT_SCRIPT, "w") as f:
+    with open(STRAIGHT_SCRIPT, 'w') as f:
         # Header
         f.write("path(path, '%s');\n" % PATH['STRAIGHT'])
         f.write("prm.spectralUpdateInterval = %f;\n" % SIGNAL['FRAMESHIFT_MS'])
@@ -280,7 +281,7 @@ def straight_generation(outdir, gen_labfile_base_lst):
             f.write("fid_ap = fopen('%s/%s.ap', 'r', 'ieee-le');\n" % (outdir, base))
             f.write("fid_f0 = fopen('%s/%s.f0', 'r', 'ieee-le');\n" % (outdir, base))
 
-            nb_frames = os.path.getsize("%s/%s.f0" % (outdir, base)) / 4
+            nb_frames = os.path.getsize('%s/%s.f0' % (outdir, base)) / 4
             f.write("sp = fread(fid_sp, [%d %d], 'float');\n" % (1025, nb_frames))
             f.write("ap = fread(fid_ap, [%d %d], 'float');\n" % (1025, nb_frames))
             f.write("f0 = fread(fid_f0, [%d %d], 'float');\n" % (1, nb_frames))
@@ -300,8 +301,8 @@ def straight_generation(outdir, gen_labfile_base_lst):
         f.write("quit;\n")
 
     # Synthesis!
-    cmd = "matlab -nojvm -nosplash -nodisplay < %s" % STRAIGHT_SCRIPT
-    subprocess.call(cmd.split(' '), stdout=out_handle)
+    cmd = 'matlab -nojvm -nosplash -nodisplay < %s' % STRAIGHT_SCRIPT
+    subprocess.call(cmd.split(), stdout=out_handle)
 
     # # Clean  [TODO: do with options]
     # os.remove(STRAIGHT_SCRIPT)
@@ -319,7 +320,7 @@ def setup_logging(is_verbose):
     """
     Setup logging according to the verbose mode
     """
-    logging.basicConfig(format="[%(asctime)s] %(levelname)s : %(message)s")
+    logging.basicConfig(format='[%(asctime)s] %(levelname)s : %(message)s')
     
     if not is_verbose:
         level = logging.INFO
@@ -376,29 +377,29 @@ def main():
     # 3. Compose models
     #    * CMP
     logger.info("CMP unseen model building")
-    cmd = "%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
-        (HHEd, TRAIN_CONFIG, cmp_model_fpath, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + "_cmp.hed", full_list_fpath)
-    subprocess.call(cmd.split(' '), stdout=out_handle)
+    cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
+        (HHEd, TRAIN_CONFIG, cmp_model_fpath, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + '_cmp.hed', full_list_fpath)
+    subprocess.call(cmd.split(), stdout=out_handle)
     #    * DUR
     logger.info("Duration unseen model building")
-    cmd = "%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
+    cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
         (HHEd, TRAIN_CONFIG, dur_model_fpath, TMP_DUR_MMF, TYPE_HED_UNSEEN_BASE + '_dur.hed', full_list_fpath)
-    subprocess.call(cmd.split(' '), stdout=out_handle)
+    subprocess.call(cmd.split(), stdout=out_handle)
     
     #    * GV
     if use_gv:
         logger.info("Global variance unseen model building")
-        cmd = "%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s" % \
+        cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
             (HHEd, TRAIN_CONFIG, args.gv_dir + '/clustered.mmf', TMP_GV_MMF, GV_HED_UNSEEN_BASE + '.hed',
              args.gv_dir + '/gv.list')
-        subprocess.call(cmd.split(' '), stdout=out_handle)
+        subprocess.call(cmd.split(), stdout=out_handle)
 
     # 4. Generate parameters
     logger.info("Parameter generation")
-    cmd = "%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s" % \
+    cmd = '%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
         (HMGenS, SYNTH_CONFIG, gen_labfile_list_fname, HMM['BEAM_STEPS'], int(args.pg_type), TMP_CMP_MMF, TMP_DUR_MMF,
          outdir, TYPE_TIED_LIST_BASE + '_cmp', TYPE_TIED_LIST_BASE + '_dur')
-    subprocess.call(cmd.split(' '), stdout=out_handle)
+    subprocess.call(cmd.split(), stdout=out_handle)
 
     # 5. Call straight to synthesize
     logger.info("Parameter conversion (could be quite long)")
@@ -422,11 +423,11 @@ if __name__ == '__main__':
 
         # models
         argp.add_argument('-m', '--cmp', dest='cmp_model_fname', required=True,
-                          help="CMP model file", metavar="FILE")
+                          help="CMP model file", metavar='FILE')
         argp.add_argument('-d', '--dur', dest='dur_model_fname', required=True,
-                          help="Duration model file", metavar="FILE")
+                          help="Duration model file", metavar='FILE')
         argp.add_argument('-l', '--list', dest='full_list_fname', required=True,
-                          help="Label list training lab files", metavar="FILE")
+                          help="Label list training lab files", metavar='FILE')
         argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir', required=True,
                           help="Directory which contains the coefficient trees")
         argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir', required=True,
