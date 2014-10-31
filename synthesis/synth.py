@@ -15,8 +15,8 @@ DESCRIPTION
 EXAMPLES
 
     %run /Volumes/Python/pyhts/synthesis/synth.py
-            -m models/qst001/ver1/cmp/re_clustered_all.mmf.1mix
-            -d models/qst001/ver1/dur/re_clustered_all.mmf.1mix
+            -m models/qst001/ver1/cmp/clustered.mmf
+            -d models/qst001/ver1/dur/clustered.mmf
             -o OUT_WAV -i limsi_fr_tat_0001.lab -l full.list
 
 EXIT STATUS
