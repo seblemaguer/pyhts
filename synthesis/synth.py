@@ -15,9 +15,13 @@ DESCRIPTION
 EXAMPLES
 
     %run /Volumes/Python/pyhts/synthesis/synth.py
-            -m models/qst001/ver1/cmp/clustered.mmf
-            -d models/qst001/ver1/dur/clustered.mmf
-            -o OUT_WAV -i limsi_fr_tat_0001.lab -l full.list
+            -m models/cmp/re_clustered.mmf
+            -d models/dur/re_clustered.mmf
+            -t trees/cmp
+            -u trees/dur
+            -i data/limsi_fr_tat_0001.lab
+            -o OUT_WAV
+            -l data/lists/full.list
 
 EXIT STATUS
 
@@ -128,11 +132,11 @@ def generate_synthesis_configuration(use_gv):
         f.write('PDFSTREXT = "StrVec %d %s"\n' % (len(TYPE_MAP['CMP']), ' '.join(TYPE_MAP['CMP'])))
 
         # Windows
-        f.write('WINFN = "')
+        f.write('WINFN = "')                                        # WINFN: Name of window coefficient files
         for cur_type in TYPE_MAP['CMP']:
             # FIXME in the middle of the source => move
-            win_fname = ' '.join('%s.win%d' % (cur_type, d) for d in range(1, int(NWIN[cur_type]) + 1))
-            f.write(' StrVec %d %s' % (int(NWIN[cur_type]), win_fname))
+            win_fnames = ' '.join('%s.win%d' % (cur_type, d) for d in range(1, int(NWIN[cur_type]) + 1))
+            f.write(' StrVec %d %s' % (int(NWIN[cur_type]), win_fnames))
         f.write('"\n')
         f.write('WINDIR = %s\n' % WIN_PATH)
 
@@ -378,27 +382,28 @@ def main():
     #    * CMP
     logger.info("CMP unseen model building")
     cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-        (HHEd, TRAIN_CONFIG, cmp_model_fpath, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE + '_cmp.hed', full_list_fpath)
+        (HHEd, TRAIN_CONFIG, cmp_model_fpath, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE+'_cmp.hed', full_list_fpath)
     subprocess.call(cmd.split(), stdout=out_handle)
     #    * DUR
     logger.info("Duration unseen model building")
     cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-        (HHEd, TRAIN_CONFIG, dur_model_fpath, TMP_DUR_MMF, TYPE_HED_UNSEEN_BASE + '_dur.hed', full_list_fpath)
+        (HHEd, TRAIN_CONFIG, dur_model_fpath, TMP_DUR_MMF, TYPE_HED_UNSEEN_BASE+'_dur.hed', full_list_fpath)
     subprocess.call(cmd.split(), stdout=out_handle)
     
     #    * GV
     if use_gv:
         logger.info("Global variance unseen model building")
         cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-            (HHEd, TRAIN_CONFIG, args.gv_dir + '/clustered.mmf', TMP_GV_MMF, GV_HED_UNSEEN_BASE + '.hed',
-             args.gv_dir + '/gv.list')
+            (HHEd, TRAIN_CONFIG, args.gv_dir+'/clustered.mmf', TMP_GV_MMF, GV_HED_UNSEEN_BASE+'.hed',
+             args.gv_dir+'/gv.list')
         subprocess.call(cmd.split(), stdout=out_handle)
+        # FIXME: change directory to file (args.gv_dir+'/clustered.mmf')
 
     # 4. Generate parameters
     logger.info("Parameter generation")
     cmd = '%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
         (HMGenS, SYNTH_CONFIG, gen_labfile_list_fname, HMM['BEAM_STEPS'], int(args.pg_type), TMP_CMP_MMF, TMP_DUR_MMF,
-         outdir, TYPE_TIED_LIST_BASE + '_cmp', TYPE_TIED_LIST_BASE + '_dur')
+         outdir, TYPE_TIED_LIST_BASE+'_cmp', TYPE_TIED_LIST_BASE+'_dur')
     subprocess.call(cmd.split(), stdout=out_handle)
 
     # 5. Call straight to synthesize
