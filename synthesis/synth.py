@@ -194,7 +194,7 @@ def mk_unseen_script(_cmp_tree_path, _dur_tree_path, use_gv, gv_dir=None):
         # Load trees
         f.write('// Load trees\n')
         for cur_type in TYPE_MAP['CMP']:
-            f.write('LT "%s/%s.inf"\n\n' % (_cmp_tree_path, cur_type))
+            f.write('LT "%s/%s.inf.untied"\n\n' % (_cmp_tree_path, cur_type))
 
         # Make unseen
         f.write('// Make unseen\n')
