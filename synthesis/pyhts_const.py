@@ -33,7 +33,7 @@ STRB = cfg['STRB']
 STRE = cfg['STRE']
 NWIN = cfg['NWIN']
 
-MATLAB = os.path.join(PATH['MATLAB'], 'matlab')
+MATLAB = PATH['MATLAB']
 
 HHEd = os.path.join(PATH['HTS'], 'HHEd')
 HMGenS = os.path.join(PATH['HTS'], 'HMGenS')
