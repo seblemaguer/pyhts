@@ -33,8 +33,13 @@ STRB = cfg['STRB']
 STRE = cfg['STRE']
 NWIN = cfg['NWIN']
 
+MATLAB = os.path.join(PATH['MATLAB'], 'matlab')
+
 HHEd = os.path.join(PATH['HTS'], 'HHEd')
 HMGenS = os.path.join(PATH['HTS'], 'HMGenS')
+
+SOPR = os.path.join(PATH['SPTK'], 'sopr')
+MGC2SP = os.path.join(PATH['SPTK'], 'mgc2sp')
 
 # Create TMP_PATH if it doesn't exist
 try:

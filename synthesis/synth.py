@@ -22,6 +22,7 @@ EXAMPLES
             -i data/limsi_fr_tat_0001.lab
             -o OUT_WAV
             -l data/lists/full.list
+            -p 0
 
 EXIT STATUS
 
@@ -101,7 +102,7 @@ def generate_training_configuration():
         f.write('MINDUR = %s\n' % GEN['MINDUR'])
 
 
-def generate_synthesis_configuration(use_gv):
+def generate_synthesis_configuration(_use_gv):
     """
     Generate the synthesis configuration file needed by HMGenS
     """
@@ -141,7 +142,7 @@ def generate_synthesis_configuration(use_gv):
         f.write('WINDIR = %s\n' % WIN_PATH)
 
         # Global variance
-        if use_gv:
+        if _use_gv:
             f.write('EMEPSILON  = %f\n' % GEN['EMEPSILON'])
             f.write('USEGV      = TRUE\n')
             f.write('GVMODELMMF = %s\n' % TMP_GV_MMF)
@@ -165,12 +166,12 @@ def generate_synthesis_configuration(use_gv):
             f.write('USEGV      = FALSE\n')
 
 
-def mk_unseen_script(_cmp_tree_path, _dur_tree_path, use_gv, gv_dir=None):
+def mk_unseen_script(_cmp_tree_path, _dur_tree_path, _use_gv, gv_dir=None):
     """
     Generate hed
     """
     # Generate GV script
-    if use_gv:
+    if _use_gv:
         with open(GV_HED_UNSEEN_BASE + '.hed', 'w') as f:
             f.write('\nTR 2\n\n')
 
@@ -226,66 +227,67 @@ def mk_unseen_script(_cmp_tree_path, _dur_tree_path, use_gv, gv_dir=None):
 ################################################################################
 
 # TODO : add post-filtering functions
-# def post_filtering_mcp(base, outdir):
+# def post_filtering_mcp(base, _out_path):
 #     """
 #     """
 #     str_pf_mcp = '%f' % SIGNAL['PF_MCP']
-#     cmd = 'echo 1 1 %s | x2x +af > %s/weights' % (' '.join([str_pf_mcp] * ORDER['MGC']), outdir)
+#     cmd = 'echo 1 1 %s | x2x +af > %s/weights' % (' '.join([str_pf_mcp] * ORDER['MGC']), _out_path)
 
 #     # TODO: finish but not needed for the moment
 #     pass
 
 #     # # Clean
-#     # os.remove('%s/weights' % outdir)
+#     # os.remove('%s/weights' % _out_path)
 
 
-def parameter_conversion(outdir, gen_labfile_base_lst):
+def parameter_conversion(_out_path, gen_labfile_base_lst):
     """
     Convert parameter to STRAIGHT params
     """
     for base in gen_labfile_base_lst:
         # lf0 => f0
-        cmd = 'sopr -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
-            (outdir, base)
-        with open('%s/%s.f0' % (outdir, base), 'w') as f:
+        cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
+            (SOPR, _out_path, base)
+        with open('%s/%s.f0' % (_out_path, base), 'w') as f:
             subprocess.call(cmd.split(), stdout=f)
 
         # bap => aperiodicity
-        cmd = 'mgc2sp -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
-            (FREQWARPING, ORDER['BAP']-1, outdir, base)
-        with open('%s/%s.ap' % (outdir, base), 'w') as f:
+        cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
+            (MGC2SP, FREQWARPING, int(ORDER['BAP'])-1, _out_path, base)
+        with open('%s/%s.ap' % (_out_path, base), 'w') as f:
             subprocess.call(cmd.split(), stdout=f)
 
         # mgc => spectrum
-        cmd = 'mgc2sp -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
-            (FREQWARPING, SIGNAL['GAMMA'], ORDER['MGC']-1, outdir, base)
-        with open('%s/%s.sp' % (outdir, base), 'w') as f:
+        cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
+            (MGC2SP, float(FREQWARPING), float(SIGNAL['GAMMA']), int(ORDER['MGC'])-1, _out_path, base)
+        with open('%s/%s.sp' % (_out_path, base), 'w') as f:
             subprocess.call(cmd.split(), stdout=f)
+        # FIXME: include int(), float()... in the pyhts_const.py (or change %d, %f... in %s)
 
         # # Clean [TODO: do with options]
-        # os.remove('%s/%s.lf0' % (outdir, base))
-        # os.remove('%s/%s.mgc' % (outdir, base))
-        # os.remove('%s/%s.bap' % (outdir, base))
-        # os.remove('%s/%s.dur' % (outdir, base))     # TODO : must be an option in the synth config
+        # os.remove('%s/%s.lf0' % (_out_path, base))
+        # os.remove('%s/%s.mgc' % (_out_path, base))
+        # os.remove('%s/%s.bap' % (_out_path, base))
+        # os.remove('%s/%s.dur' % (_out_path, base))     # TODO : must be an option in the synth config
 
 
-def straight_generation(outdir, gen_labfile_base_lst):
+def straight_generation(_out_path, gen_labfile_base_lst):
     """
     """
     # Generate STRAIGHT script
     with open(STRAIGHT_SCRIPT, 'w') as f:
         # Header
         f.write("path(path, '%s');\n" % PATH['STRAIGHT'])
-        f.write("prm.spectralUpdateInterval = %f;\n" % SIGNAL['FRAMESHIFT_MS'])
+        f.write("prm.spectralUpdateInterval = %f;\n" % float(SIGNAL['FRAMESHIFT_MS']))
         f.write("prm.levelNormalizationIndicator = 0;\n\n")
 
         # Read STRAIGHT params
         for base in gen_labfile_base_lst:
-            f.write("fid_sp = fopen('%s/%s.sp', 'r', 'ieee-le');\n" % (outdir, base))
-            f.write("fid_ap = fopen('%s/%s.ap', 'r', 'ieee-le');\n" % (outdir, base))
-            f.write("fid_f0 = fopen('%s/%s.f0', 'r', 'ieee-le');\n" % (outdir, base))
+            f.write("fid_sp = fopen('%s/%s.sp', 'r', 'ieee-le');\n" % (_out_path, base))
+            f.write("fid_ap = fopen('%s/%s.ap', 'r', 'ieee-le');\n" % (_out_path, base))
+            f.write("fid_f0 = fopen('%s/%s.f0', 'r', 'ieee-le');\n" % (_out_path, base))
 
-            nb_frames = os.path.getsize('%s/%s.f0' % (outdir, base)) / 4
+            nb_frames = os.path.getsize('%s/%s.f0' % (_out_path, base)) / 4
             f.write("sp = fread(fid_sp, [%d %d], 'float');\n" % (1025, nb_frames))
             f.write("ap = fread(fid_ap, [%d %d], 'float');\n" % (1025, nb_frames))
             f.write("f0 = fread(fid_f0, [%d %d], 'float');\n" % (1, nb_frames))
@@ -298,22 +300,22 @@ def straight_generation(outdir, gen_labfile_base_lst):
             # f.write("sp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
 
             # Synthesis process part 2
-            f.write("[sy] = exstraightsynth(f0, sp, ap, %d, prm);\n" % SAMPLERATE)
-            f.write("wavwrite(sy, %d, '%s/%s.wav');\n" % (SAMPLERATE, outdir, base))
+            f.write("[sy] = exstraightsynth(f0, sp, ap, %d, prm);\n" % int(SAMPLERATE))
+            f.write("wavwrite(sy, %d, '%s/%s.wav');\n" % (int(SAMPLERATE), _out_path, base))
 
         # Ending
         f.write("quit;\n")
 
     # Synthesis!
-    cmd = 'matlab -nojvm -nosplash -nodisplay < %s' % STRAIGHT_SCRIPT
+    cmd = '%s -nojvm -nosplash -nodisplay < %s' % (MATLAB, STRAIGHT_SCRIPT)
     subprocess.call(cmd.split(), stdout=out_handle)
 
     # # Clean  [TODO: do with options]
     # os.remove(STRAIGHT_SCRIPT)
     # for base in gen_labfile_base_lst:
-    #     os.remove('%s/%s.sp' % (outdir, base))
-    #     os.remove('%s/%s.ap' % (outdir, base))
-    #     os.remove('%s/%s.f0' % (outdir, base))
+    #     os.remove('%s/%s.sp' % (_out_path, base))
+    #     os.remove('%s/%s.ap' % (_out_path, base))
+    #     os.remove('%s/%s.f0' % (_out_path, base))
 
 
 ################################################################################
@@ -351,8 +353,11 @@ def main():
     """
     Main entry function
     """
-    use_gv = args.gv_dir
-    outdir = os.path.abspath(args.output)
+    # Create output directory if none, else pass
+    try:
+        os.mkdir(out_path)
+    except FileExistsError:
+        pass
 
     # 0. Generate list file
     gen_labfile_list_fname = TMP_GEN_LABFILE_LIST_FNAME
@@ -403,15 +408,15 @@ def main():
     logger.info("Parameter generation")
     cmd = '%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
         (HMGenS, SYNTH_CONFIG, gen_labfile_list_fname, HMM['BEAM_STEPS'], int(args.pg_type), TMP_CMP_MMF, TMP_DUR_MMF,
-         outdir, TYPE_TIED_LIST_BASE+'_cmp', TYPE_TIED_LIST_BASE+'_dur')
+         out_path, TYPE_TIED_LIST_BASE+'_cmp', TYPE_TIED_LIST_BASE+'_dur')
     subprocess.call(cmd.split(), stdout=out_handle)
 
     # 5. Call straight to synthesize
     logger.info("Parameter conversion (could be quite long)")
-    parameter_conversion(outdir, gen_labfile_base_lst)
+    parameter_conversion(out_path, gen_labfile_base_lst)
     
     logger.info("Audio rendering (could be quite long)")
-    straight_generation(outdir, gen_labfile_base_lst)
+    straight_generation(out_path, gen_labfile_base_lst)
 
 
 ################################################################################
@@ -458,6 +463,9 @@ if __name__ == '__main__':
         full_list_fpath = os.path.join(CWD_PATH, args.full_list_fname)
         cmp_tree_path = os.path.join(CWD_PATH, args.cmp_tree_dir)
         dur_tree_path = os.path.join(CWD_PATH, args.dur_tree_dir)
+        out_path = os.path.join(CWD_PATH, args.output)
+
+        use_gv = args.gv_dir
 
         # Debug time
         logger = setup_logging(args.verbose)
