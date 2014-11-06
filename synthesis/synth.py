@@ -296,8 +296,8 @@ def straight_generation(_out_path, gen_labfile_base_lst):
             f.write("fclose(fid_ap);\n")
             f.write("fclose(fid_f0);\n")
 
-            # Spectrum normalisation # FIXME (why ?) => not compatible with our corpus podalydes
-            # f.write("sp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
+            # Spectrum normalization    # FIXME (why ?) => not compatible with our corpus podalydes
+            f.write("sp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
 
             # Synthesis process part 2
             f.write("[sy] = exstraightsynth(f0, sp, ap, %d, prm);\n" % int(SAMPLERATE))
