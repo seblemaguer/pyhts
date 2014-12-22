@@ -41,7 +41,7 @@ VERSION
 
     $Id$
 """
-
+import os
 import sys
 import traceback
 import argparse as ap
@@ -51,7 +51,7 @@ import subprocess       # Shell command calling
 import re
 import logging
 
-from pyhts_const import *
+from pyhts_configuration import Configuration
 
 
 ################################################################################
@@ -62,7 +62,7 @@ def generate_label_list(input_label_list):
     """
     Generate the label list file to get it through the tree
     """
-    pattern = re.compile('[ \t]+')
+    pattern = re.compile('[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.*)')
     full_set = set()
 
     # Fullcontext list (Training + generation)
@@ -70,10 +70,14 @@ def generate_label_list(input_label_list):
         with open(input_label) as lab_file:
             for line in lab_file:
                 line = line.strip()
-                lab = pattern.split(line)[2]
+                m = pattern.match(line)
+                if m is not None:
+                    lab = m.group(2)
+                else:
+                    lab = line
                 full_set.add(lab)
 
-    with open(LABEL_LIST_FNAME, 'w') as list_file:
+    with open(conf.LABEL_LIST_FNAME, 'w') as list_file:
         list_file.write('\n'.join(full_set))
 
 
@@ -82,24 +86,33 @@ def generate_training_configuration():
     Generate 'training configuration' => needed for the tree search
     """
     # Training configuration
-    with open(TRAIN_CONFIG, 'w') as f:
+    with open(conf.TRAIN_CONFIG, 'w') as f:
         f.write('NATURALREADORDER = T\n')
         f.write('NATURALWRITEORDER = T\n')
 
         # Variance floor options
         f.write('APPLYVFLOOR = T\n')
-        f.write('VFLOORSCALESTR = "Vector %d' % (max([int(STRE[cur_type]) for cur_type in TYPE_MAP['CMP']])))
-        for cur_type in TYPE_MAP['CMP']:
-            f.write(' ')
-            f.write(' '.join(['%s' % VFLR[cur_type]] * (int(STRE[cur_type]) - int(STRB[cur_type]) + 1)))
-
-        f.write('"\n')
+        
+        cur_stream_idx = 0
+        tmp_vflr_val = ''
+        for cur_stream in conf.STREAMS:
+            cur_stream_idx += 1
+            tmp_vflr_val += ' '
+            if cur_stream["is_msd"]:
+                end_stream_idx = cur_stream_idx + len(cur_stream["winfiles"]) - 1
+                tmp_vflr_val += ' '.join(['%s' % cur_stream["vflr"]] * (end_stream_idx - cur_stream_idx + 1))
+                cur_stream_idx = end_stream_idx
+            else:
+                tmp_vflr_val += '%s' % cur_stream["vflr"]
+                
+        f.write('VFLOORSCALESTR = "Vector %d %s"\n' % (cur_stream_idx, tmp_vflr_val))
+        
         f.write('APPLYDURVARFLOOR = T\n')
-        f.write('DURVARFLOORPERCENTILE = %f\n' % (100 * float(VFLR['DUR'])))
+        f.write('DURVARFLOORPERCENTILE = %f\n' % (100 * float(conf.DUR["vflr"])))
 
         # Duration specific
-        f.write('MAXSTDDEVCOEF = %s\n' % GEN['MAXDEV_HSMM'])
-        f.write('MINDUR = %s\n' % GEN['MINDUR'])
+        f.write('MAXSTDDEVCOEF = %s\n' % conf.MODELLING['maxdev'])
+        f.write('MINDUR = %s\n' % conf.MODELLING['mindur'])
 
 
 def generate_synthesis_configuration(_use_gv):
@@ -109,56 +122,61 @@ def generate_synthesis_configuration(_use_gv):
     # Synthesis configuration
 
     # config file for parameter generation
-    with open(SYNTH_CONFIG, 'w') as f:
+    with open(conf.SYNTH_CONFIG, 'w') as f:
 
         # Global parameters
         f.write('NATURALREADORDER = T\n')
         f.write('NATURALWRITEORDER = T\n')
         f.write('USEALIGN = T\n')
-        f.write('MAXEMITER = %s\n' % GEN['MAXEMITER'])
+        f.write('MAXEMITER = %s\n' % conf.GEN['maxemiter'])
 
         # Counting streams
-        f.write('PDFSTRSIZE = "IntVec %d' % len(TYPE_MAP['CMP']))    # PdfStream structure
-        for cur_type in TYPE_MAP['CMP']:
-            f.write(' %d' % (int(STRE[cur_type]) - int(STRB[cur_type]) + 1))
+        f.write('PDFSTRSIZE = "IntVec %d' % len(conf.STREAMS))    # PdfStream structure
+        for cur_stream in conf.STREAMS:
+            if cur_stream["is_msd"]:
+                f.write(' %d' % len(cur_stream["winfiles"]))
+            else:
+                f.write(' 1')
         f.write('"\n')
 
         # Order of each coefficients
-        f.write('PDFSTRORDER = "IntVec %d' % len(TYPE_MAP['CMP']))    # PdfStream structure
-        for cur_type in TYPE_MAP['CMP']:
-            f.write(' %s' % (ORDER[cur_type]))
+        f.write('PDFSTRORDER = "IntVec %d' % len(conf.STREAMS))    # PdfStream structure
+        for cur_stream in conf.STREAMS:
+            f.write(' %d' % (cur_stream["order"]+1))
         f.write('"\n')
 
         # Extension
-        f.write('PDFSTREXT = "StrVec %d %s"\n' % (len(TYPE_MAP['CMP']), ' '.join(TYPE_MAP['CMP'])))
+        f.write('PDFSTREXT = "StrVec %d' % len(conf.STREAMS))
+        for cur_stream in conf.STREAMS:
+            f.write(' %s' % cur_stream["kind"])
+        f.write('"\n')
 
         # Windows
         f.write('WINFN = "')                                        # WINFN: Name of window coefficient files
-        for cur_type in TYPE_MAP['CMP']:
-            # FIXME in the middle of the source => move
-            win_fnames = ' '.join('%s.win%d' % (cur_type, d) for d in range(1, int(NWIN[cur_type]) + 1))
-            f.write(' StrVec %d %s' % (int(NWIN[cur_type]), win_fnames))
+        for cur_stream in conf.STREAMS:
+            f.write(' StrVec %d %s' % (len(cur_stream["winfiles"]), ' '.join(cur_stream["winfiles"])))
         f.write('"\n')
-        f.write('WINDIR = %s\n' % WIN_PATH)
 
         # Global variance
         if _use_gv:
-            f.write('EMEPSILON  = %f\n' % GEN['EMEPSILON'])
+            f.write('EMEPSILON  = %f\n' % conf.GV['emepsilon'])
             f.write('USEGV      = TRUE\n')
-            f.write('GVMODELMMF = %s\n' % TMP_GV_MMF)
-            f.write('GVHMMLIST  = %s\n' % GV_TIED_LIST_TMP)
-            f.write('MAXGVITER  = %d\n' % GEN['MAXGVITER'])
-            f.write('GVEPSILON  = %f\n' % GEN['GVEPSILON'])
-            f.write('MINEUCNORM = %f\n' % GEN['MINEUCNORM'])
-            f.write('STEPINIT   = %f\n' % GEN['STEPINIT'])
-            f.write('STEPINC    = %f\n' % GEN['STEPINC'])
-            f.write('STEPDEC    = %f\n' % GEN['STEPDEC'])
-            f.write('HMMWEIGHT  = %f\n' % GEN['HMMWEIGHT'])
-            f.write('GVWEIGHT   = %f\n' % GEN['GVWEIGHT'])
-            f.write('OPTKIND    = %s\n' % GEN['OPTKIND'])
+            f.write('GVMODELMMF = %s\n' % conf.TMP_GV_MMF)
+            f.write('GVHMMLIST  = %s\n' % conf.GV_TIED_LIST_TMP)
+            f.write('MAXGVITER  = %d\n' % conf.GV['maxgviter'])
+            f.write('GVEPSILON  = %f\n' % conf.GV['gvepsilon'])
+            f.write('MINEUCNORM = %f\n' % conf.GV['mineucnorm'])
+            f.write('STEPINIT   = %f\n' % conf.GV['stepinit'])
+            f.write('STEPINC    = %f\n' % conf.GV['stepinc'])
+            f.write('STEPDEC    = %f\n' % conf.GV['stepdec'])
+            f.write('HMMWEIGHT  = %f\n' % conf.GV['hmmweight'])
+            f.write('GVWEIGHT   = %f\n' % conf.GV['gvweight'])
+            f.write('OPTKIND    = %s\n' % conf.GV['optkind'])
 
-            f.write('GVOFFMODEL = "StrVec %d %s"\n' % (len(SLNT), ' '.join(SLNT)))
-            if GV['CDGV']:
+            if conf.GV["slnt"] is not None:
+                f.write('GVOFFMODEL = "StrVec %d %s"\n' % (len(conf.GV["slnt"]), ' '.join(conf.GV["slnt"])))
+                
+            if conf.GV['cdgv']:
                 f.write('CDGV = TRUE\n')
             else:
                 f.write('CDGV = FALSE\n')
@@ -172,54 +190,54 @@ def mk_unseen_script(_cmp_tree_path, _dur_tree_path, _use_gv, gv_dir=None):
     """
     # Generate GV script
     if _use_gv:
-        with open(GV_HED_UNSEEN_BASE + '.hed', 'w') as f:
+        with open(conf.GV_HED_UNSEEN_BASE + '.hed', 'w') as f:
             f.write('\nTR 2\n\n')
 
             # Load trees
             f.write('// Load trees\n')
-            for cur_type in TYPE_MAP['CMP']:
-                f.write('LT "%s/%s.inf"\n\n' % (gv_dir, cur_type))
+            for cur_stream in conf.STREAMS:
+                f.write('LT "%s/%s.inf"\n\n' % (gv_dir, cur_stream["kind"]))
 
             # Make unseen
             f.write('// Make unseen\n')
-            f.write('AU "%s"\n\n' % LABEL_LIST_FNAME)
+            f.write('AU "%s"\n\n' % conf.LABEL_LIST_FNAME)
 
             # Compact model
             f.write('// Compact\n')
-            f.write('CO "%s"\n\n' % GV_TIED_LIST_TMP)
+            f.write('CO "%s"\n\n' % conf.GV_TIED_LIST_TMP)
 
     # CMP
-    with open('%s_cmp.hed' % TYPE_HED_UNSEEN_BASE, 'w') as f:
+    with open('%s_cmp.hed' % conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
         f.write('\nTR 2\n\n')
 
         # Load trees
         f.write('// Load trees\n')
-        for cur_type in TYPE_MAP['CMP']:
-            f.write('LT "%s/%s.inf.untied"\n\n' % (_cmp_tree_path, cur_type))
+        for cur_stream in conf.STREAMS:
+            f.write('LT "%s/%s.%s"\n\n' % (_cmp_tree_path, cur_stream["kind"], conf.GEN["tree_ext"]))
 
         # Make unseen
         f.write('// Make unseen\n')
-        f.write('AU "%s"\n\n' % LABEL_LIST_FNAME)
+        f.write('AU "%s"\n\n' % conf.LABEL_LIST_FNAME)
 
         # Compact model
         f.write('// Compact\n')
-        f.write('CO "%s_cmp"\n\n' % TYPE_TIED_LIST_BASE)
+        f.write('CO "%s_cmp"\n\n' % conf.TYPE_TIED_LIST_BASE)
 
     # DUR
-    with open('%s_dur.hed' % TYPE_HED_UNSEEN_BASE, 'w') as f:
+    with open('%s_dur.hed' % conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
         f.write('\nTR 2\n\n')
 
         # Load trees
         f.write('// Load trees\n')
-        f.write('LT "%s/dur.inf"\n\n' % _dur_tree_path)
+        f.write('LT "%s/dur.%s"\n\n' % (_dur_tree_path, conf.GEN["tree_ext"]))
 
         # Make unseen
         f.write('// Make unseen\n')
-        f.write('AU "%s"\n\n' % LABEL_LIST_FNAME)
+        f.write('AU "%s"\n\n' % conf.LABEL_LIST_FNAME)
 
         # Compact model
         f.write('// Compact\n')
-        f.write('CO "%s_dur"\n\n' % TYPE_TIED_LIST_BASE)
+        f.write('CO "%s_dur"\n\n' % conf.TYPE_TIED_LIST_BASE)
 
 
 ################################################################################
@@ -245,40 +263,42 @@ def parameter_conversion(_out_path, gen_labfile_base_lst):
     Convert parameter to STRAIGHT params
     """
     for base in gen_labfile_base_lst:
-        # lf0 => f0
-        cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
-            (SOPR, _out_path, base)
-        with open('%s/%s.f0' % (_out_path, base), 'w') as f:
-            subprocess.call(cmd.split(), stdout=f)
 
         # bap => aperiodicity
-        cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
-            (MGC2SP, FREQWARPING, int(ORDER['BAP'])-1, _out_path, base)
-        with open('%s/%s.ap' % (_out_path, base), 'w') as f:
-            subprocess.call(cmd.split(), stdout=f)
+        for cur_stream in conf.STREAMS:
+            if cur_stream["kind"] == "lf0": 
+                # lf0 => f0
+                cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
+                  (conf.SOPR, _out_path, base)
+                with open('%s/%s.f0' % (_out_path, base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
+            elif cur_stream["kind"] == "bap":
+                cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
+                  (conf.MGC2SP, conf.FREQWARPING, cur_stream["order"], _out_path, base)
+                with open('%s/%s.ap' % (_out_path, base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
+            elif cur_stream["kind"] == "mgc":
+                # mgc => spectrum TODO
+                cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
+                  (conf.MGC2SP, conf.FREQWARPING, cur_stream['gamma'], cur_stream["order"], _out_path, base)
+                with open('%s/%s.sp' % (_out_path, base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
 
-        # mgc => spectrum
-        cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
-            (MGC2SP, float(FREQWARPING), float(SIGNAL['GAMMA']), int(ORDER['MGC'])-1, _out_path, base)
-        with open('%s/%s.sp' % (_out_path, base), 'w') as f:
-            subprocess.call(cmd.split(), stdout=f)
-        # FIXME: include int(), float()... in the pyhts_const.py (or change %d, %f... in %s)
-
-        # # Clean [TODO: do with options]
-        # os.remove('%s/%s.lf0' % (_out_path, base))
-        # os.remove('%s/%s.mgc' % (_out_path, base))
-        # os.remove('%s/%s.bap' % (_out_path, base))
-        # os.remove('%s/%s.dur' % (_out_path, base))     # TODO : must be an option in the synth config
+        # Clean [TODO: do with options]
+        os.remove('%s/%s.lf0' % (_out_path, base))
+        os.remove('%s/%s.mgc' % (_out_path, base))
+        os.remove('%s/%s.bap' % (_out_path, base))
+        os.remove('%s/%s.dur' % (_out_path, base))
 
 
 def straight_generation(_out_path, gen_labfile_base_lst):
     """
     """
     # Generate STRAIGHT script
-    with open(STRAIGHT_SCRIPT, 'w') as f:
+    with open(conf.STRAIGHT_SCRIPT, 'w') as f:
         # Header
-        f.write("path(path, '%s');\n" % PATH['STRAIGHT'])
-        f.write("prm.spectralUpdateInterval = %f;\n" % float(SIGNAL['FRAMESHIFT_MS']))
+        f.write("path(path, '%s');\n" % conf.STRAIGHT_PATH)
+        f.write("prm.spectralUpdateInterval = %f;\n" % conf.SIGNAL['frameshift'])
         f.write("prm.levelNormalizationIndicator = 0;\n\n")
 
         # Read STRAIGHT params
@@ -300,22 +320,22 @@ def straight_generation(_out_path, gen_labfile_base_lst):
             f.write("sp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
 
             # Synthesis process part 2
-            f.write("[sy] = exstraightsynth(f0, sp, ap, %d, prm);\n" % int(SAMPLERATE))
-            f.write("wavwrite(sy, %d, '%s/%s.wav');\n" % (int(SAMPLERATE), _out_path, base))
+            f.write("[sy] = exstraightsynth(f0, sp, ap, %d, prm);\n" % conf.SIGNAL["samplerate"])
+            f.write("wavwrite(sy, %d, '%s/%s.wav');\n" % (conf.SIGNAL["samplerate"], _out_path, base))
 
         # Ending
         f.write("quit;\n")
 
     # Synthesis!
-    cmd = '%s -nojvm -nosplash -nodisplay < %s' % (MATLAB, STRAIGHT_SCRIPT)
+    cmd = '%s -nojvm -nosplash -nodisplay < %s' % (conf.MATLAB, conf.STRAIGHT_SCRIPT)
     subprocess.call(cmd.split(), stdout=out_handle)
 
-    # # Clean  [TODO: do with options]
-    # os.remove(STRAIGHT_SCRIPT)
-    # for base in gen_labfile_base_lst:
-    #     os.remove('%s/%s.sp' % (_out_path, base))
-    #     os.remove('%s/%s.ap' % (_out_path, base))
-    #     os.remove('%s/%s.f0' % (_out_path, base))
+    # Clean  [TODO: do with options]
+    os.remove(conf.STRAIGHT_SCRIPT)
+    for base in gen_labfile_base_lst:
+        os.remove('%s/%s.sp' % (_out_path, base))
+        os.remove('%s/%s.ap' % (_out_path, base))
+        os.remove('%s/%s.f0' % (_out_path, base))
 
 
 ################################################################################
@@ -360,7 +380,7 @@ def main():
         pass
 
     # 0. Generate list file
-    gen_labfile_list_fname = TMP_GEN_LABFILE_LIST_FNAME
+    gen_labfile_list_fname = conf.TMP_GEN_LABFILE_LIST_FNAME
     if args.input_is_list:
         gen_labfile_list_fname = args.input_fname
     else:
@@ -387,19 +407,20 @@ def main():
     #    * CMP
     logger.info("CMP unseen model building")
     cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-        (HHEd, TRAIN_CONFIG, cmp_model_fpath, TMP_CMP_MMF, TYPE_HED_UNSEEN_BASE+'_cmp.hed', full_list_fpath)
+        (conf.HHEd, conf.TRAIN_CONFIG, cmp_model_fpath, conf.TMP_CMP_MMF, conf.TYPE_HED_UNSEEN_BASE+'_cmp.hed', full_list_fpath)
     subprocess.call(cmd.split(), stdout=out_handle)
+    
     #    * DUR
     logger.info("Duration unseen model building")
     cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-        (HHEd, TRAIN_CONFIG, dur_model_fpath, TMP_DUR_MMF, TYPE_HED_UNSEEN_BASE+'_dur.hed', full_list_fpath)
+        (conf.HHEd, conf.TRAIN_CONFIG, dur_model_fpath, conf.TMP_DUR_MMF, conf.TYPE_HED_UNSEEN_BASE+'_dur.hed', full_list_fpath)
     subprocess.call(cmd.split(), stdout=out_handle)
     
     #    * GV
     if use_gv:
         logger.info("Global variance unseen model building")
         cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-            (HHEd, TRAIN_CONFIG, args.gv_dir+'/clustered.mmf', TMP_GV_MMF, GV_HED_UNSEEN_BASE+'.hed',
+            (conf.HHEd, conf.TRAIN_CONFIG, args.gv_dir+'/clustered.mmf', conf.TMP_GV_MMF, conf.GV_HED_UNSEEN_BASE+'.hed',
              args.gv_dir+'/gv.list')
         subprocess.call(cmd.split(), stdout=out_handle)
         # FIXME: change directory to file (args.gv_dir+'/clustered.mmf')
@@ -407,8 +428,8 @@ def main():
     # 4. Generate parameters
     logger.info("Parameter generation")
     cmd = '%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
-        (HMGenS, SYNTH_CONFIG, gen_labfile_list_fname, HMM['BEAM_STEPS'], int(args.pg_type), TMP_CMP_MMF, TMP_DUR_MMF,
-         out_path, TYPE_TIED_LIST_BASE+'_cmp', TYPE_TIED_LIST_BASE+'_dur')
+        (conf.HMGenS, conf.SYNTH_CONFIG, gen_labfile_list_fname, conf.MODELLING["beam"], int(args.pg_type), conf.TMP_CMP_MMF, conf.TMP_DUR_MMF,
+         out_path, conf.TYPE_TIED_LIST_BASE+'_cmp', conf.TYPE_TIED_LIST_BASE+'_dur')
     subprocess.call(cmd.split(), stdout=out_handle)
 
     # 5. Call straight to synthesize
@@ -449,7 +470,10 @@ if __name__ == '__main__':
                           help="Define the global variance model directory")
         argp.add_argument('-p', '--pg_type', dest='pg_type',
                           help="Parameter generation type")
+        
         # input/output
+        argp.add_argument('-c', '--config', dest='config_fname', required=True,
+                          help="Configuration file", metavar='FILE')
         argp.add_argument('-i', '--input', dest='input_fname', required=True,
                           help="Input lab file for synthesis", metavar='FILE')
         argp.add_argument('-o', '--output', dest='output', required=True,
@@ -457,13 +481,15 @@ if __name__ == '__main__':
 
         args = argp.parse_args()
 
-        # PATHs
-        cmp_model_fpath = os.path.join(CWD_PATH, args.cmp_model_fname)
-        dur_model_fpath = os.path.join(CWD_PATH, args.dur_model_fname)
-        full_list_fpath = os.path.join(CWD_PATH, args.full_list_fname)
-        cmp_tree_path = os.path.join(CWD_PATH, args.cmp_tree_dir)
-        dur_tree_path = os.path.join(CWD_PATH, args.dur_tree_dir)
-        out_path = os.path.join(CWD_PATH, args.output)
+        conf = Configuration(args.config_fname)
+        
+        # PATH
+        cmp_model_fpath = os.path.join(conf.CWD_PATH, args.cmp_model_fname)
+        dur_model_fpath = os.path.join(conf.CWD_PATH, args.dur_model_fname)
+        full_list_fpath = os.path.join(conf.CWD_PATH, args.full_list_fname)
+        cmp_tree_path = os.path.join(conf.CWD_PATH, args.cmp_tree_dir)
+        dur_tree_path = os.path.join(conf.CWD_PATH, args.dur_tree_dir)
+        out_path = os.path.join(conf.CWD_PATH, args.output)
 
         use_gv = args.gv_dir
 
