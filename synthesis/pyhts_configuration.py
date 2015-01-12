@@ -20,7 +20,7 @@ class Configuration(object):
         # Create TMP_PATH if it doesn't exist
         try:
             os.mkdir(self.TMP_PATH)
-        except FileExistsError:
+        except OSError:
             pass
 
         ## TMP PATHs
@@ -32,7 +32,8 @@ class Configuration(object):
         self.GV_TIED_LIST_TMP = os.path.join(self.TMP_PATH, "tiedlist_%d_gv" % os.getpid())
         self.TYPE_TIED_LIST_BASE = os.path.join(self.TMP_PATH, "tiedlist_%d" % os.getpid())
         self.LABEL_LIST_FNAME = os.path.join(self.TMP_PATH, "list_all_%d" % os.getpid())
-        self.TMP_GEN_LABFILE_LIST_FNAME = os.path.join(self.TMP_PATH, "list_input_labels_%d" % os.getpid())
+        self.TMP_GEN_LABFILE_LIST_FNAME = os.path.join(self.TMP_PATH,
+                                                       "list_input_labels_%d" % os.getpid())
 
         # Tmp Scripts
         self.GV_HED_UNSEEN_BASE = os.path.join(self.TMP_PATH, "mku_%d_gv" % os.getpid())
@@ -56,18 +57,25 @@ class Configuration(object):
     def parseConfig(self, config_fname):
         """
         """
-        
+        # Load config files
         conf = None
         with open(config_fname) as cfg_f:
             conf = json.load(cfg_f)
 
-        # TODO: add check streams kind + be robust !
+        # FIXME: Only straight accepted
+        cmp_type = ["lf0", "bap", "mgc"] #, "spline"]
         self.STREAMS = conf["models"]["cmp"]["streams"];
+        for cur_stream in self.STREAMS:
+            if cur_stream["kind"] in cmp_type:
+                pass
+            else:
+                raise Exception("Unknown type : %s" % cur_stream["kind"])
+            
         self.GEN = conf["settings"]["synthesis"]
-        self.MODELLING = conf["settings"]["modelling"]
+        self.MODELLING = conf["settings"]["training"]
         self.DUR = conf["models"]["dur"]
 
-        ## SIGNAL
+        # SIGNAL
         FREQWARP_DIC = {
             '8000': 0.31,
             '10000': 0.35,
@@ -81,6 +89,7 @@ class Configuration(object):
         self.SIGNAL = conf["signal"]
         self.FREQWARPING = FREQWARP_DIC[str(self.SIGNAL["samplerate"])]
 
+        # Global Variance
         self.GV = conf["settings"]["synthesis"]["gv"]
         self.GV["slnt"] = conf["gv"]["silences"]
         self.GV["use"] = conf["gv"]["use"]
@@ -94,13 +103,12 @@ class Configuration(object):
         except KeyError:
             pass
 
-        
+        # HTS needed commands
         try:
             self.HMGenS=conf["path"]["hts"] + "/HMGenS"
             self.HHEd=conf["path"]["hts"] + "/HHEd"
         except KeyError:
             pass
-        
         
         try:
             self.HMGenS=conf["path"]["hmgens"]
@@ -109,6 +117,13 @@ class Configuration(object):
         
         try:
             self.HHEd=conf["path"]["hhed"]
+        except KeyError:
+            pass
+
+        # SPTK needed commands
+        try:
+            self.SOPR=conf["path"]["sptk"] + "/sopr"
+            self.MGC2SP=conf["path"]["sptk"] + "/mgc2sp"
         except KeyError:
             pass
         

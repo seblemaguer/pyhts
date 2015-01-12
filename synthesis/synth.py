@@ -72,7 +72,7 @@ def generate_label_list(input_label_list):
                 line = line.strip()
                 m = pattern.match(line)
                 if m is not None:
-                    lab = m.group(2)
+                    lab = m.group(3)
                 else:
                     lab = line
                 full_set.add(lab)
@@ -209,7 +209,6 @@ def mk_unseen_script(_cmp_tree_path, _dur_tree_path, _use_gv, gv_dir=None):
     # CMP
     with open('%s_cmp.hed' % conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
         f.write('\nTR 2\n\n')
-
         # Load trees
         f.write('// Load trees\n')
         for cur_stream in conf.STREAMS:
@@ -280,7 +279,7 @@ def parameter_conversion(_out_path, gen_labfile_base_lst):
             elif cur_stream["kind"] == "mgc":
                 # mgc => spectrum TODO
                 cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
-                  (conf.MGC2SP, conf.FREQWARPING, cur_stream['gamma'], cur_stream["order"], _out_path, base)
+                  (conf.MGC2SP, conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"], _out_path, base)
                 with open('%s/%s.sp' % (_out_path, base), 'w') as f:
                     subprocess.call(cmd.split(), stdout=f)
 
@@ -376,7 +375,7 @@ def main():
     # Create output directory if none, else pass
     try:
         os.mkdir(out_path)
-    except FileExistsError:
+    except OSError:
         pass
 
     # 0. Generate list file
