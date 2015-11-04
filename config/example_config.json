@@ -19,7 +19,6 @@
             "initvar": 10.0,
             "initmean": 3.0,
             "nblk": 1,
-            "nwin": 0,
             "gam": 0,
             "mocc": 5.0,
             "mdlf": 1.0,
@@ -34,15 +33,28 @@
                         "/home/slemaguer/work/corpus/arctic_partial/win/mgc.win1",
                         "/home/slemaguer/work/corpus/arctic_partial/win/mgc.win2",
                         "/home/slemaguer/work/corpus/arctic_partial/win/mgc.win3"],
+                    "gv": {
+                        "gam": "000",
+                        "mdlf": 1.0,
+                        "thr": "000"
+                    },
+                    "parameters" : {
+                        "use_lngain": false,
+                        "gamma":0,
+                        "pf_mcp":1.4,
+                        "pf_lsp":0.7,
+                        "implen":4096,
+                        "fftlen":2048
+                    },
+                    "is_msd": false,
+                    "weight": 1,
+                    "nblk": 3,
+                    "gam": 0,
                     "order": 49,
-                    "is_msd":false,
-                    "lngain":true,
-                    "gamma":0,
-                    "pf_mcp":1.4,
-                    "pf_lsp":0.7,
-                    "implen":4096,
-                    "fftlen":2048,
-                    "vflr":0.01,
+                    "mocc": 10.0,
+                    "mdlf": 1.0,
+                    "thr": "000",
+                    "vflr": 0.01,
                     "kind": "mgc",
                     "name": "mgc"
                 },
@@ -52,11 +64,24 @@
                         "/home/slemaguer/work/corpus/arctic_partial/win/lf0.win1",
                         "/home/slemaguer/work/corpus/arctic_partial/win/lf0.win2",
                         "/home/slemaguer/work/corpus/arctic_partial/win/lf0.win3"],
+                    "gv": {
+                        "gam": "000",
+                        "mdlf": 1.0,
+                        "thr": "000"
+                    },
+                    "parameters" : {
+                        "lower_f0":110,
+                        "upper_f0":550
+                    },
+                    "is_msd": true,
+                    "weight": 1,
+                    "nblk": 1,
+                    "gam": 0,
                     "order": 0,
-                    "is_msd":true,
-                    "lower_f0":110,
-                    "upper_f0":550,
-                    "vflr":0.01,
+                    "mocc": 10.0,
+                    "mdlf": 1.0,
+                    "thr": "000",
+                    "vflr": 0.01,
                     "kind": "lf0",
                     "name": "lf0"
                 },
@@ -66,9 +91,22 @@
                         "/home/slemaguer/work/corpus/arctic_partial/win/bap.win1",
                         "/home/slemaguer/work/corpus/arctic_partial/win/bap.win2",
                         "/home/slemaguer/work/corpus/arctic_partial/win/bap.win3"],
+                    "gv": {
+                        "gam": "000",
+                        "mdlf": 1.0,
+                        "thr": "000"
+                    },
+                    "parameters" : {
+                    },
+                    "is_msd": false,
+                    "weight": 0,
+                    "nblk": 3,
+                    "gam": 0,
                     "order": 24,
-                    "is_msd":false,
-                    "vflr":0.01,
+                    "mocc": 10.0,
+                    "mdlf": 1.0,
+                    "thr": "000",
+                    "vflr": 0.01,
                     "kind": "bap",
                     "name": "bap"
                 }
@@ -96,18 +134,38 @@
                 "emepsilon": 0.0001
             }
         },
+        "daem": {
+            "alpha": 1.0,
+            "nIte": 10,
+            "use": false
+        },
         "modelling": {
             "wf": 3,
             "mindur": 5,
             "maxdev": 10,
-            "beam": "1500 100 5000"
+            "beam": "1500 100 5000",
+            "nIte": 1
         }
     },
     "signal": {
         "frameshift": 5,
         "samplerate": 48000
     },
+    "data": {
+        "question_file_gv": "/home/slemaguer/work/corpus/arctic_partial/questions/questions_utt.hed",
+        "question_file": "/home/slemaguer/work/corpus/arctic_partial/questions/questions.hed",
+        "full_lab_dir": "/home/slemaguer/work/corpus/arctic_partial/labels/full",
+        "mono_lab_dir": "/home/slemaguer/work/corpus/arctic_partial/labels/mono",
+        "wav_dir": "/home/slemaguer/work/corpus/arctic_partial/wav",
+        "scp": "/home/slemaguer/work/corpus/arctic_partial/scp/train.scp"
+    },
+    "output": {
+        "raw":true,
+        "hts_engine":false,
+        "marytts":false,
+        "festival":false
+    },
     "path": {
-        "straight" : "/home/slemaguer/work/expes/multi-level-f0-hts/ext/STRAIGHTV40pcode"
+        "straight" : "/home/slemaguer/work/tools/STRAIGHTV40pcode"
     }
 }
