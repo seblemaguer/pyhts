@@ -20,7 +20,7 @@ class Configuration(object):
         # Create TMP_PATH if it doesn't exist
         try:
             os.mkdir(self.TMP_PATH)
-        except FileExistsError:
+        except OSError:
             pass
 
         ## TMP PATHs
@@ -72,7 +72,7 @@ class Configuration(object):
                 raise Exception("Unknown type : %s" % cur_stream["kind"])
             
         self.GEN = conf["settings"]["synthesis"]
-        self.MODELLING = conf["settings"]["modelling"]
+        self.MODELLING = conf["settings"]["training"]
         self.DUR = conf["models"]["dur"]
 
         # SIGNAL

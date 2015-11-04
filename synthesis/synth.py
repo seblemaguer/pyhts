@@ -375,7 +375,7 @@ def main():
     # Create output directory if none, else pass
     try:
         os.mkdir(out_path)
-    except FileExistsError:
+    except OSError:
         pass
 
     # 0. Generate list file
