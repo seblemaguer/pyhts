@@ -51,8 +51,19 @@ import subprocess       # Shell command calling
 import re
 import logging
 
+from shutil import copyfile # For copying files
 from pyhts_configuration import Configuration
 
+
+################################################################################
+### Utils
+################################################################################
+def copy_imposed_files(_in_path, _out_path, gen_labfile_base_lst, ext):
+    """
+    """
+    for base in gen_labfile_base_lst:
+        copyfile("%s/%s.%s" % (_in_path, base, ext),
+                 "%s/%s.%s" %  (_out_path, base, ext))
 
 ################################################################################
 ### Config + script functions
@@ -92,7 +103,7 @@ def generate_training_configuration():
 
         # Variance floor options
         f.write('APPLYVFLOOR = T\n')
-        
+
         cur_stream_idx = 0
         tmp_vflr_val = ''
         for cur_stream in conf.STREAMS:
@@ -104,9 +115,9 @@ def generate_training_configuration():
                 cur_stream_idx = end_stream_idx
             else:
                 tmp_vflr_val += '%s' % cur_stream["vflr"]
-                
+
         f.write('VFLOORSCALESTR = "Vector %d %s"\n' % (cur_stream_idx, tmp_vflr_val))
-        
+
         f.write('APPLYDURVARFLOOR = T\n')
         f.write('DURVARFLOORPERCENTILE = %f\n' % (100 * float(conf.DUR["vflr"])))
 
@@ -175,7 +186,7 @@ def generate_synthesis_configuration(_use_gv):
 
             if conf.GV["slnt"] is not None:
                 f.write('GVOFFMODEL = "StrVec %d %s"\n' % (len(conf.GV["slnt"]), ' '.join(conf.GV["slnt"])))
-                
+
             if conf.GV['cdgv']:
                 f.write('CDGV = TRUE\n')
             else:
@@ -265,7 +276,7 @@ def parameter_conversion(_out_path, gen_labfile_base_lst):
 
         # bap => aperiodicity
         for cur_stream in conf.STREAMS:
-            if cur_stream["kind"] == "lf0": 
+            if cur_stream["kind"] == "lf0":
                 # lf0 => f0
                 cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
                   (conf.SOPR, _out_path, base)
@@ -346,7 +357,7 @@ def setup_logging(is_verbose):
     Setup logging according to the verbose mode
     """
     logging.basicConfig(format='[%(asctime)s] %(levelname)s : %(message)s')
-    
+
     if not is_verbose:
         level = logging.INFO
     else:
@@ -372,6 +383,8 @@ def main():
     """
     Main entry function
     """
+    global args
+
     # Create output directory if none, else pass
     try:
         os.mkdir(out_path)
@@ -392,7 +405,7 @@ def main():
         for line in f:
             gen_labfile_lst.append(line.strip())
             gen_labfile_base_lst.append(os.path.splitext(os.path.basename(line.strip()))[0])
-    
+
     generate_label_list(gen_labfile_lst)
 
     # 1. Generate configs
@@ -408,13 +421,13 @@ def main():
     cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
         (conf.HHEd, conf.TRAIN_CONFIG, cmp_model_fpath, conf.TMP_CMP_MMF, conf.TYPE_HED_UNSEEN_BASE+'_cmp.hed', full_list_fpath)
     subprocess.call(cmd.split(), stdout=out_handle)
-    
+
     #    * DUR
     logger.info("Duration unseen model building")
     cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
         (conf.HHEd, conf.TRAIN_CONFIG, dur_model_fpath, conf.TMP_DUR_MMF, conf.TYPE_HED_UNSEEN_BASE+'_dur.hed', full_list_fpath)
     subprocess.call(cmd.split(), stdout=out_handle)
-    
+
     #    * GV
     if use_gv:
         logger.info("Global variance unseen model building")
@@ -426,15 +439,29 @@ def main():
 
     # 4. Generate parameters
     logger.info("Parameter generation")
-    cmd = '%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
-        (conf.HMGenS, conf.SYNTH_CONFIG, gen_labfile_list_fname, conf.MODELLING["beam"], int(args.pg_type), conf.TMP_CMP_MMF, conf.TMP_DUR_MMF,
-         out_path, conf.TYPE_TIED_LIST_BASE+'_cmp', conf.TYPE_TIED_LIST_BASE+'_dur')
+    if args.imposed_duration:
+        cmd = '%s -m -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
+              (conf.HMGenS, conf.SYNTH_CONFIG, gen_labfile_list_fname,
+               conf.MODELLING["beam"], int(args.pg_type), conf.TMP_CMP_MMF, conf.TMP_DUR_MMF,
+               out_path, conf.TYPE_TIED_LIST_BASE+'_cmp', conf.TYPE_TIED_LIST_BASE+'_dur')
+    else:
+        cmd = '%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
+              (conf.HMGenS, conf.SYNTH_CONFIG, gen_labfile_list_fname,
+               conf.MODELLING["beam"], int(args.pg_type), conf.TMP_CMP_MMF, conf.TMP_DUR_MMF,
+               out_path, conf.TYPE_TIED_LIST_BASE+'_cmp', conf.TYPE_TIED_LIST_BASE+'_dur')
     subprocess.call(cmd.split(), stdout=out_handle)
 
-    # 5. Call straight to synthesize
+    # 5. Convert/adapt parameters
     logger.info("Parameter conversion (could be quite long)")
+    if args.impose_f0_dir:
+        copy_imposed_files(args.impose_f0_dir, out_path, gen_labfile_base_lst, "lf0")
+    if args.impose_mgc_dir:
+        copy_imposed_file(args.impose_mgc_dir, out_path, gen_labfile_base_lst, "mgc")
+    if args.impose_bap_dir:
+        copy_imposed_file(args.impose_bap_dir, out_path, gen_labfile_base_lst, "bap")
     parameter_conversion(out_path, gen_labfile_base_lst)
-    
+
+    # 6. Call straight to synthesize
     logger.info("Audio rendering (could be quite long)")
     straight_generation(out_path, gen_labfile_base_lst)
 
@@ -469,7 +496,17 @@ if __name__ == '__main__':
                           help="Define the global variance model directory")
         argp.add_argument('-p', '--pg_type', dest='pg_type',
                           help="Parameter generation type")
-        
+
+        # Imposing
+        argp.add_argument("-D", "--imposed_duration", dest="imposed_dur", action="store_true",
+                          default=False, help="imposing the duration at a phone level")
+        argp.add_argument("-F", "--imposed_f0_dir", dest="impose_f0_dir",
+                          help="F0 directory to use at the synthesis level")
+        argp.add_argument("-M", "--imposed_mgc_dir", dest="impose_mgc_dir",
+                          help="MGC directory to use at the synthesis level")
+        argp.add_argument("-B", "--imposed_bap_dir", dest="impose_bap_dir",
+                          help="BAP directory to use at the synthesis level")
+
         # input/output
         argp.add_argument('-c', '--config', dest='config_fname', required=True,
                           help="Configuration file", metavar='FILE')
@@ -478,10 +515,11 @@ if __name__ == '__main__':
         argp.add_argument('-o', '--output', dest='output', required=True,
                           help="Output wav directory", metavar='FILE')
 
+
         args = argp.parse_args()
 
         conf = Configuration(args.config_fname)
-        
+
         # PATH
         cmp_model_fpath = os.path.join(conf.CWD_PATH, args.cmp_model_fname)
         dur_model_fpath = os.path.join(conf.CWD_PATH, args.dur_model_fname)
@@ -498,7 +536,7 @@ if __name__ == '__main__':
             out_handle = sys.stdout
         else:
             out_handle = subprocess.DEVNULL
-        
+
         # Debug time
         start_time = time.time()
         if args.verbose:
