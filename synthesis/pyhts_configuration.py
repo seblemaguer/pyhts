@@ -53,7 +53,7 @@ class Configuration(object):
 
         if (config_fname is not None):
             self.parseConfig(config_fname)
-        
+
     def parseConfig(self, config_fname):
         """
         """
@@ -70,7 +70,7 @@ class Configuration(object):
                 pass
             else:
                 raise Exception("Unknown type : %s" % cur_stream["kind"])
-            
+
         self.GEN = conf["settings"]["synthesis"]
         self.MODELLING = conf["settings"]["training"]
         self.DUR = conf["models"]["dur"]
@@ -95,7 +95,8 @@ class Configuration(object):
         self.GV["use"] = conf["gv"]["use"]
         self.GV["cdgv"] = conf["gv"]["cdgv"]
 
-        # Add path
+        # Add pathes
+        self.PROJECT_DIR = conf["data"]["project_dir"]
         self.STRAIGHT_PATH = conf["path"]["straight"]
 
         try:
@@ -109,12 +110,12 @@ class Configuration(object):
             self.HHEd=conf["path"]["hts"] + "/HHEd"
         except KeyError:
             pass
-        
+
         try:
             self.HMGenS=conf["path"]["hmgens"]
         except KeyError:
             pass
-        
+
         try:
             self.HHEd=conf["path"]["hhed"]
         except KeyError:
@@ -126,14 +127,13 @@ class Configuration(object):
             self.MGC2SP=conf["path"]["sptk"] + "/mgc2sp"
         except KeyError:
             pass
-        
+
         try:
             self.SOPR=conf["path"]["sopr"]
         except KeyError:
             pass
-        
+
         try:
             self.MGC2SP=conf["path"]["mgc2sp"]
         except KeyError:
             pass
-        

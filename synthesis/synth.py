@@ -164,8 +164,12 @@ def generate_synthesis_configuration(_use_gv):
 
         # Windows
         f.write('WINFN = "')                                        # WINFN: Name of window coefficient files
+
         for cur_stream in conf.STREAMS:
-            f.write(' StrVec %d %s' % (len(cur_stream["winfiles"]), ' '.join(cur_stream["winfiles"])))
+            win = ""
+            for w in cur_stream["winfiles"]:
+                win = win + " %s/%s" % (conf.PROJECT_DIR, w)
+            f.write(' StrVec %d%s' % (len(cur_stream["winfiles"]), win))
         f.write('"\n')
 
         # Global variance
@@ -331,7 +335,7 @@ def straight_generation(_out_path, gen_labfile_base_lst):
 
             # Synthesis process part 2
             f.write("[sy] = exstraightsynth(f0, sp, ap, %d, prm);\n" % conf.SIGNAL["samplerate"])
-            f.write("wavwrite(sy, %d, '%s/%s.wav');\n" % (conf.SIGNAL["samplerate"], _out_path, base))
+            f.write("audiowrite('%s/%s.wav', sy, %d);\n" % (_out_path, base, conf.SIGNAL["samplerate"]))
 
         # Ending
         f.write("quit;\n")
@@ -498,7 +502,7 @@ if __name__ == '__main__':
                           help="Parameter generation type")
 
         # Imposing
-        argp.add_argument("-D", "--imposed_duration", dest="imposed_dur", action="store_true",
+        argp.add_argument("-D", "--imposed_duration", dest="imposed_duration", action="store_true",
                           default=False, help="imposing the duration at a phone level")
         argp.add_argument("-F", "--imposed_f0_dir", dest="impose_f0_dir",
                           help="F0 directory to use at the synthesis level")
