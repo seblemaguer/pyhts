@@ -62,6 +62,7 @@ def copy_imposed_files(_in_path, _out_path, gen_labfile_base_lst, ext):
     """
     """
     for base in gen_labfile_base_lst:
+        logger.info("copy %s/%s.%s to %s/%s.%s" % (_in_path, base, ext, _out_path, base, ext))
         copyfile("%s/%s.%s" % (_in_path, base, ext),
                  "%s/%s.%s" %  (_out_path, base, ext))
 
@@ -458,6 +459,7 @@ def main():
     # 5. Convert/adapt parameters
     logger.info("Parameter conversion (could be quite long)")
     if args.impose_f0_dir:
+        logger.info("replace f0 using imposed one")
         copy_imposed_files(args.impose_f0_dir, out_path, gen_labfile_base_lst, "lf0")
     if args.impose_mgc_dir:
         copy_imposed_file(args.impose_mgc_dir, out_path, gen_labfile_base_lst, "mgc")
