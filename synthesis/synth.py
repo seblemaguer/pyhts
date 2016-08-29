@@ -53,7 +53,7 @@ import logging
 
 from shutil import copyfile # For copying files
 from pyhts_configuration import Configuration
-
+import numpy as np
 
 ################################################################################
 ### Utils
@@ -65,6 +65,25 @@ def copy_imposed_files(_in_path, _out_path, gen_labfile_base_lst, ext):
         logger.info("copy %s/%s.%s to %s/%s.%s" % (_in_path, base, ext, _out_path, base, ext))
         copyfile("%s/%s.%s" % (_in_path, base, ext),
                  "%s/%s.%s" %  (_out_path, base, ext))
+
+def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
+    """
+    """
+    for base in gen_labfile_base_lst:
+        logger.info("copy %s/%s.%s to %s/%s.%s" % (_in_path, base, ext, _out_path, base, ext))
+        # Retrieve mask
+        mask = np.fromfile("%s/%s.%s" % (_out_path, base, ext), dtype=np.float32)
+
+        # Retrieve F0
+        lf0 = np.fromfile("%s/%s.%s" % (_in_path, base, ext), dtype=np.float32)
+        for i in range(0, min(lf0.size, mask.size)):
+            if mask[i] == -1e10:
+                lf0[i] = mask[i]
+
+            logger.info("%f" % lf0[i])
+
+        # Finally save the F0
+        lf0.tofile("%s/%s.%s" % (_out_path, base, ext))
 
 ################################################################################
 ### Config + script functions
@@ -300,10 +319,10 @@ def parameter_conversion(_out_path, gen_labfile_base_lst):
                     subprocess.call(cmd.split(), stdout=f)
 
         # Clean [TODO: do with options]
-        os.remove('%s/%s.lf0' % (_out_path, base))
+        # os.remove('%s/%s.lf0' % (_out_path, base))
         os.remove('%s/%s.mgc' % (_out_path, base))
         os.remove('%s/%s.bap' % (_out_path, base))
-        os.remove('%s/%s.dur' % (_out_path, base))
+        # os.remove('%s/%s.dur' % (_out_path, base))
 
 
 def straight_generation(_out_path, gen_labfile_base_lst):
@@ -458,9 +477,15 @@ def main():
 
     # 5. Convert/adapt parameters
     logger.info("Parameter conversion (could be quite long)")
+    if args.impose_f0_dir and args.impose_interpolated_f0_dir:
+        raise Exception("cannot impose 2 kind of F0 at the same time")
+
     if args.impose_f0_dir:
         logger.info("replace f0 using imposed one")
         copy_imposed_files(args.impose_f0_dir, out_path, gen_labfile_base_lst, "lf0")
+    if args.impose_interpolated_f0_dir:
+        logger.info("replace f0 using interpolated one")
+        adapt_f0_files(args.impose_interpolated_f0_dir, out_path, gen_labfile_base_lst, "lf0")
     if args.impose_mgc_dir:
         copy_imposed_file(args.impose_mgc_dir, out_path, gen_labfile_base_lst, "mgc")
     if args.impose_bap_dir:
@@ -508,6 +533,8 @@ if __name__ == '__main__':
                           default=False, help="imposing the duration at a phone level")
         argp.add_argument("-F", "--imposed_f0_dir", dest="impose_f0_dir",
                           help="F0 directory to use at the synthesis level")
+        argp.add_argument("-I", "--imposed_interpolated_f0_dir", dest="impose_interpolated_f0_dir",
+                          help="Interpolated F0 directory to use at the synthesis level (unvoiced property is predicted by the F0 from HTS directly)")
         argp.add_argument("-M", "--imposed_mgc_dir", dest="impose_mgc_dir",
                           help="MGC directory to use at the synthesis level")
         argp.add_argument("-B", "--imposed_bap_dir", dest="impose_bap_dir",
