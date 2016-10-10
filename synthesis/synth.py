@@ -54,7 +54,8 @@ import logging
 from shutil import copyfile # For copying files
 from pyhts_configuration import Configuration
 import numpy as np
-from audio_generation.STRAIGHTGeneration import STRAIGHTGeneration
+from audio_generation import STRAIGHTGeneration
+import audio_generation
 
 ################################################################################
 ### Utils
@@ -445,7 +446,7 @@ def main():
 
     # 6. Call straight to synthesize
     logger.info("Audio rendering (could be quite long)")
-    straight_generation = STRAIGHTGeneration(conf, out_handle)
+    straight_generation = audio_generation.generateSynthesizer(conf, out_handle)
     straight_generation.generate(out_path, gen_labfile_base_lst)
 
 

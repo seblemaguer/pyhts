@@ -62,6 +62,11 @@ class Configuration(object):
         with open(config_fname) as cfg_f:
             conf = json.load(cfg_f)
 
+        try:
+            self.kind = conf["settings"]["synthesis"]["kind"]
+        except KeyError:
+            raise Exception("A kind of synthesis needs to be defined (straight, ....)")
+
         # FIXME: Only straight accepted
         cmp_type = ["lf0", "bap", "mgc"] #, "spline"]
         self.STREAMS = conf["models"]["cmp"]["streams"];
