@@ -80,8 +80,6 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
             if mask[i] == -1e10:
                 lf0[i] = mask[i]
 
-            logger.info("%f" % lf0[i])
-
         # Finally save the F0
         lf0.tofile("%s/%s.%s" % (_out_path, base, ext))
 
