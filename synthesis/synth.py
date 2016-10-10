@@ -51,11 +51,152 @@ import subprocess       # Shell command calling
 import re
 import logging
 
+
+from threading import Thread
 from shutil import copyfile # For copying files
 from pyhts_configuration import Configuration
 import numpy as np
 from audio_generation import STRAIGHTGeneration
 import audio_generation
+
+
+################################################################################
+### Model composition Threads
+################################################################################
+class CMPComposition(Thread):
+    def __init__(self, conf, _cmp_tree_path, cmp_model_fpath, full_list_fpath, out_handle):
+        Thread.__init__(self)
+        self.conf = conf
+        self._cmp_tree_path = _cmp_tree_path
+        self.cmp_model_fpath = cmp_model_fpath
+        self.full_list_fpath = full_list_fpath
+        self.out_handle = out_handle
+
+    def mk_unseen_script(self):
+        with open('%s_cmp.hed' % self.conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
+            f.write('\nTR 2\n\n')
+            # Load trees
+            f.write('// Load trees\n')
+            for cur_stream in self.conf.STREAMS:
+                f.write('LT "%s/%s.%s"\n\n' % (self._cmp_tree_path, cur_stream["kind"], self.conf.GEN["tree_ext"]))
+
+            # Make unseen
+            f.write('// Make unseen\n')
+            f.write('AU "%s"\n\n' % self.conf.LABEL_LIST_FNAME)
+
+            # Compact model
+            f.write('// Compact\n')
+            f.write('CO "%s_cmp"\n\n' % self.conf.TYPE_TIED_LIST_BASE)
+
+    def run(self):
+        self.mk_unseen_script()
+
+        logger.info("CMP unseen model building")
+        cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
+              (self.conf.HHEd, self.conf.TRAIN_CONFIG, cmp_model_fpath, self.conf.TMP_CMP_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_cmp.hed', self.full_list_fpath)
+        subprocess.call(cmd.split(), stdout=self.out_handle)
+
+class DURComposition(Thread):
+    def __init__(self, conf, _dur_tree_path, dur_model_fpath, full_list_fpath, out_handle):
+        Thread.__init__(self)
+        self.conf = conf
+        self._dur_tree_path = _dur_tree_path
+        self.dur_model_fpath = dur_model_fpath
+        self.full_list_fpath = full_list_fpath
+        self.out_handle = out_handle
+
+    def mk_unseen_script(self):
+        with open('%s_dur.hed' % self.conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
+            f.write('\nTR 2\n\n')
+
+            # Load trees
+            f.write('// Load trees\n')
+            f.write('LT "%s/dur.%s"\n\n' % (self._dur_tree_path, self.conf.GEN["tree_ext"]))
+
+            # Make unseen
+            f.write('// Make unseen\n')
+            f.write('AU "%s"\n\n' % self.conf.LABEL_LIST_FNAME)
+
+            # Compact model
+            f.write('// Compact\n')
+            f.write('CO "%s_dur"\n\n' % self.conf.TYPE_TIED_LIST_BASE)
+
+    def run(self):
+        self.mk_unseen_script()
+
+        logger.info("Duration unseen model building")
+        cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
+              (self.conf.HHEd, self.conf.TRAIN_CONFIG, dur_model_fpath, self.conf.TMP_DUR_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_dur.hed', self.full_list_fpath)
+        subprocess.call(cmd.split(), stdout=self.out_handle)
+
+class GVComposition(Thread):
+    def __init__(self, conf, gv_dir, out_handle):
+        Thread.__init__(self)
+        self.conf = conf
+        self.gv_dir = gv_dir
+        self.out_handle = out_handle
+
+    def mk_unseen_script(self):
+        with open(self.conf.GV_HED_UNSEEN_BASE + '.hed', 'w') as f:
+            f.write('\nTR 2\n\n')
+
+            # Load trees
+            f.write('// Load trees\n')
+            for cur_stream in self.conf.STREAMS:
+                f.write('LT "%s/%s.inf"\n\n' % (self.gv_dir, cur_stream["kind"]))
+
+            # Make unseen
+            f.write('// Make unseen\n')
+            f.write('AU "%s"\n\n' % self.conf.LABEL_LIST_FNAME)
+
+            # Compact model
+            f.write('// Compact\n')
+            f.write('CO "%s"\n\n' % self.conf.GV_TIED_LIST_TMP)
+
+    def run(self):
+        self.mk_unseen_script()
+
+        logger.info("Global variance unseen model building")
+        cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
+            (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.gv_dir+'/clustered.mmf', self.conf.TMP_GV_MMF, self.conf.GV_HED_UNSEEN_BASE+'.hed',
+             self.gv_dir+'/gv.list')
+        subprocess.call(cmd.split(), stdout=self.out_handle)
+        # FIXME: change directory to file (args.gv_dir+'/clustered.mmf')
+
+class ParameterConversion(Thread):
+    def __init__(self, conf, _out_path, base):
+        Thread.__init__(self)
+        self.conf = conf
+        self._out_path = _out_path
+        self.base = base
+
+    def run(self):
+        # bap => aperiodicity
+        for cur_stream in self.conf.STREAMS:
+            if cur_stream["kind"] == "lf0":
+                # lf0 => f0
+                cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
+                  (self.conf.SOPR, self._out_path, self.base)
+                with open('%s/%s.f0' % (self._out_path, self.base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
+            elif cur_stream["kind"] == "bap":
+                cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
+                  (self.conf.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self._out_path, self.base)
+                with open('%s/%s.ap' % (self._out_path, self.base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
+            elif cur_stream["kind"] == "mgc":
+                # mgc => spectrum TODO
+                cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
+                  (self.conf.MGC2SP, self.conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"], self._out_path, self.base)
+                with open('%s/%s.sp' % (self._out_path, self.base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
+
+        # Clean [TODO: do with options]
+        os.remove('%s/%s.lf0' % (self._out_path, self.base))
+        os.remove('%s/%s.mgc' % (self._out_path, self.base))
+        os.remove('%s/%s.bap' % (self._out_path, self.base))
+        os.remove('%s/%s.dur' % (self._out_path, self.base))
+
 
 ################################################################################
 ### Utils
@@ -88,7 +229,6 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
 ################################################################################
 ### Config + script functions
 ################################################################################
-
 def generate_label_list(input_label_list):
     """
     Generate the label list file to get it through the tree
@@ -219,61 +359,6 @@ def generate_synthesis_configuration(_use_gv):
             f.write('USEGV      = FALSE\n')
 
 
-def mk_unseen_script(_cmp_tree_path, _dur_tree_path, _use_gv, gv_dir=None):
-    """
-    Generate hed
-    """
-    # Generate GV script
-    if _use_gv:
-        with open(conf.GV_HED_UNSEEN_BASE + '.hed', 'w') as f:
-            f.write('\nTR 2\n\n')
-
-            # Load trees
-            f.write('// Load trees\n')
-            for cur_stream in conf.STREAMS:
-                f.write('LT "%s/%s.inf"\n\n' % (gv_dir, cur_stream["kind"]))
-
-            # Make unseen
-            f.write('// Make unseen\n')
-            f.write('AU "%s"\n\n' % conf.LABEL_LIST_FNAME)
-
-            # Compact model
-            f.write('// Compact\n')
-            f.write('CO "%s"\n\n' % conf.GV_TIED_LIST_TMP)
-
-    # CMP
-    with open('%s_cmp.hed' % conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
-        f.write('\nTR 2\n\n')
-        # Load trees
-        f.write('// Load trees\n')
-        for cur_stream in conf.STREAMS:
-            f.write('LT "%s/%s.%s"\n\n' % (_cmp_tree_path, cur_stream["kind"], conf.GEN["tree_ext"]))
-
-        # Make unseen
-        f.write('// Make unseen\n')
-        f.write('AU "%s"\n\n' % conf.LABEL_LIST_FNAME)
-
-        # Compact model
-        f.write('// Compact\n')
-        f.write('CO "%s_cmp"\n\n' % conf.TYPE_TIED_LIST_BASE)
-
-    # DUR
-    with open('%s_dur.hed' % conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
-        f.write('\nTR 2\n\n')
-
-        # Load trees
-        f.write('// Load trees\n')
-        f.write('LT "%s/dur.%s"\n\n' % (_dur_tree_path, conf.GEN["tree_ext"]))
-
-        # Make unseen
-        f.write('// Make unseen\n')
-        f.write('AU "%s"\n\n' % conf.LABEL_LIST_FNAME)
-
-        # Compact model
-        f.write('// Compact\n')
-        f.write('CO "%s_dur"\n\n' % conf.TYPE_TIED_LIST_BASE)
-
-
 ################################################################################
 ### Parameter transformation function
 ################################################################################
@@ -292,37 +377,23 @@ def mk_unseen_script(_cmp_tree_path, _dur_tree_path, _use_gv, gv_dir=None):
 #     # os.remove('%s/weights' % _out_path)
 
 
-def parameter_conversion(_out_path, gen_labfile_base_lst):
+def parameter_conversion(_out_path, gen_labfile_base_lst, parallel=False):
     """
     Convert parameter to STRAIGHT params
     """
+    list_threads = []
     for base in gen_labfile_base_lst:
+        thread = ParameterConversion(conf, _out_path, base)
+        thread.start()
 
-        # bap => aperiodicity
-        for cur_stream in conf.STREAMS:
-            if cur_stream["kind"] == "lf0":
-                # lf0 => f0
-                cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
-                  (conf.SOPR, _out_path, base)
-                with open('%s/%s.f0' % (_out_path, base), 'w') as f:
-                    subprocess.call(cmd.split(), stdout=f)
-            elif cur_stream["kind"] == "bap":
-                cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
-                  (conf.MGC2SP, conf.FREQWARPING, cur_stream["order"], _out_path, base)
-                with open('%s/%s.ap' % (_out_path, base), 'w') as f:
-                    subprocess.call(cmd.split(), stdout=f)
-            elif cur_stream["kind"] == "mgc":
-                # mgc => spectrum TODO
-                cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
-                  (conf.MGC2SP, conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"], _out_path, base)
-                with open('%s/%s.sp' % (_out_path, base), 'w') as f:
-                    subprocess.call(cmd.split(), stdout=f)
+        if not parallel:
+            thread.join()
+        else:
+            list_threads.append(thread)
 
-        # Clean [TODO: do with options]
-        # os.remove('%s/%s.lf0' % (_out_path, base))
-        os.remove('%s/%s.mgc' % (_out_path, base))
-        os.remove('%s/%s.bap' % (_out_path, base))
-        # os.remove('%s/%s.dur' % (_out_path, base))
+    if parallel:
+        for thread in list_threads:
+            thread.join()
 
 ################################################################################
 ### Main function
@@ -388,30 +459,31 @@ def main():
     generate_training_configuration()
     generate_synthesis_configuration(use_gv)
 
-    # 2. Generate scripts
-    mk_unseen_script(cmp_tree_path, dur_tree_path, use_gv, args.gv_dir)
 
     # 3. Compose models
     #    * CMP
-    logger.info("CMP unseen model building")
-    cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-        (conf.HHEd, conf.TRAIN_CONFIG, cmp_model_fpath, conf.TMP_CMP_MMF, conf.TYPE_HED_UNSEEN_BASE+'_cmp.hed', full_list_fpath)
-    subprocess.call(cmd.split(), stdout=out_handle)
+    thread_cmp = CMPComposition(conf, cmp_tree_path, cmp_model_fpath, full_list_fpath, out_handle)
+    thread_cmp.start()
+    if not args.is_parallel:
+        thread_cmp.join()
 
     #    * DUR
-    logger.info("Duration unseen model building")
-    cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-        (conf.HHEd, conf.TRAIN_CONFIG, dur_model_fpath, conf.TMP_DUR_MMF, conf.TYPE_HED_UNSEEN_BASE+'_dur.hed', full_list_fpath)
-    subprocess.call(cmd.split(), stdout=out_handle)
+    thread_dur = DURComposition(conf, dur_tree_path, dur_model_fpath, full_list_fpath, out_handle)
+    thread_dur.start()
+    if not args.is_parallel:
+        thread_dur.join()
+
 
     #    * GV
     if use_gv:
-        logger.info("Global variance unseen model building")
-        cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-            (conf.HHEd, conf.TRAIN_CONFIG, args.gv_dir+'/clustered.mmf', conf.TMP_GV_MMF, conf.GV_HED_UNSEEN_BASE+'.hed',
-             args.gv_dir+'/gv.list')
-        subprocess.call(cmd.split(), stdout=out_handle)
-        # FIXME: change directory to file (args.gv_dir+'/clustered.mmf')
+        thread_gv = GVComposition(conf, args.gv_dir, out_handle)
+        thread_gv.start()
+        thread_gv.join()
+
+
+    if args.is_parallel:
+       thread_cmp.join()
+       thread_dur.join()
 
     # 4. Generate parameters
     logger.info("Parameter generation")
@@ -442,11 +514,12 @@ def main():
         copy_imposed_file(args.impose_mgc_dir, out_path, gen_labfile_base_lst, "mgc")
     if args.impose_bap_dir:
         copy_imposed_file(args.impose_bap_dir, out_path, gen_labfile_base_lst, "bap")
-    parameter_conversion(out_path, gen_labfile_base_lst)
+
+    parameter_conversion(out_path, gen_labfile_base_lst, args.is_parallel)
 
     # 6. Call straight to synthesize
     logger.info("Audio rendering (could be quite long)")
-    straight_generation = audio_generation.generateSynthesizer(conf, out_handle)
+    straight_generation = audio_generation.generateSynthesizer(conf, out_handle, args.is_parallel)
     straight_generation.generate(out_path, gen_labfile_base_lst)
 
 
@@ -481,6 +554,8 @@ if __name__ == '__main__':
                           default=False, help="the input is a scp formatted file")
         argp.add_argument('-g', '--gv', dest='gv_dir',
                           help="Define the global variance model directory")
+        argp.add_argument('-P', '--parallel', dest="is_parallel", action="store_true",
+                          default=False, help="Activate parallel mode")
 
         # Imposing
         argp.add_argument("-D", "--imposed_duration", dest="imposed_duration", action="store_true",

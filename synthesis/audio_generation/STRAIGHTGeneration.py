@@ -29,11 +29,12 @@ LEVEL = [logging.WARNING, logging.INFO, logging.DEBUG]
 ###############################################################################
 # Functions
 ###############################################################################
-class STRAIGHTGeneration: #(GenerationInterface):
+class STRAIGHTGeneration:
 
-    def __init__(self, conf, out_handle):
+    def __init__(self, conf, out_handle, is_parallel):
         self.conf = conf
         self.out_handle = out_handle
+        self.is_parallel = is_parallel
 
 
     def generate(self, _out_path, gen_labfile_base_lst):
@@ -46,27 +47,48 @@ class STRAIGHTGeneration: #(GenerationInterface):
             f.write("prm.spectralUpdateInterval = %f;\n" % self.conf.SIGNAL['frameshift'])
             f.write("prm.levelNormalizationIndicator = 0;\n\n")
 
-            # Read STRAIGHT params
-            for base in gen_labfile_base_lst:
-                f.write("fid_sp = fopen('%s/%s.sp', 'r', 'ieee-le');\n" % (_out_path, base))
-                f.write("fid_ap = fopen('%s/%s.ap', 'r', 'ieee-le');\n" % (_out_path, base))
-                f.write("fid_f0 = fopen('%s/%s.f0', 'r', 'ieee-le');\n" % (_out_path, base))
+            # Now some parameters
+            f.write("out_path = '%s';\n" % _out_path)
+            f.write("fft_len = %d;\n" % 1025) # FIXME: hardcoded
+            f.write("samplerate = %d;\n" % self.conf.SIGNAL["samplerate"])
+            f.write("basenames = {};")
+            for i in range(1, len(gen_labfile_base_lst)+1):
+                f.write("basenames{%d} = '%s';\n" % (i, gen_labfile_base_lst[i-1]))
+            f.write("\n")
 
+            f.write("nb_frames = [];\n")
+            for i in range(1, len(gen_labfile_base_lst)+1):
+                base = gen_labfile_base_lst[i-1]
                 nb_frames = os.path.getsize('%s/%s.f0' % (_out_path, base)) / 4
-                f.write("sp = fread(fid_sp, [%d %d], 'float');\n" % (1025, nb_frames))
-                f.write("ap = fread(fid_ap, [%d %d], 'float');\n" % (1025, nb_frames))
-                f.write("f0 = fread(fid_f0, [%d %d], 'float');\n" % (1, nb_frames))
+                f.write("nb_frames(%d) = %d;\n" % (i, nb_frames))
+            f.write("\n")
 
-                f.write("fclose(fid_sp);\n")
-                f.write("fclose(fid_ap);\n")
-                f.write("fclose(fid_f0);\n")
+            # Read STRAIGHT params
+            nb_elts = len(gen_labfile_base_lst)
+            if (self.is_parallel):
+                f.write("parfor i=1:%d\n" % nb_elts)
+            else:
+                f.write("for i=1:%d\n" % nb_elts)
 
-                # Spectrum normalization    # FIXME (why ?) => not compatible with our corpus podalydes
-                f.write("sp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
+            f.write("\tfid_sp = fopen(sprintf('%s/%s.sp', out_path, basenames{i}), 'r', 'ieee-le');\n")
+            f.write("\tfid_ap = fopen(sprintf('%s/%s.ap', out_path, basenames{i}), 'r', 'ieee-le');\n")
+            f.write("\tfid_f0 = fopen(sprintf('%s/%s.f0', out_path, basenames{i}), 'r', 'ieee-le');\n")
 
-                # Synthesis process part 2
-                f.write("[sy] = exstraightsynth(f0, sp, ap, %d, prm);\n" % self.conf.SIGNAL["samplerate"])
-                f.write("audiowrite('%s/%s.wav', sy, %d);\n" % (_out_path, base, self.conf.SIGNAL["samplerate"]))
+            f.write("\tsp = fread(fid_sp, [fft_len nb_frames(i)], 'float');\n")
+            f.write("\tap = fread(fid_ap, [fft_len nb_frames(i)], 'float');\n")
+            f.write("\tf0 = fread(fid_f0, [1 nb_frames(i)], 'float');\n")
+
+            f.write("\tfclose(fid_sp);\n")
+            f.write("\tfclose(fid_ap);\n")
+            f.write("\tfclose(fid_f0);\n")
+
+            # Spectrum normalization    # FIXME (why ?) => not compatible with our corpus podalydes
+            f.write("\tsp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
+
+            # Synthesis process part 2
+            f.write("\t[sy] = exstraightsynth(f0, sp, ap, samplerate, prm);\n")
+            f.write("\taudiowrite(sprintf('%s/%s.wav', out_path, basenames{i}), sy, samplerate);\n")
+            f.write("end;\n")
 
             # Ending
             f.write("quit;\n")
@@ -76,7 +98,7 @@ class STRAIGHTGeneration: #(GenerationInterface):
         subprocess.call(cmd.split(), stdout=self.out_handle)
 
         # Clean  [TODO: do with options]
-        os.remove(self.conf.STRAIGHT_SCRIPT)
+        # os.remove(self.conf.STRAIGHT_SCRIPT)
         for base in gen_labfile_base_lst:
             os.remove('%s/%s.sp' % (_out_path, base))
             os.remove('%s/%s.ap' % (_out_path, base))
