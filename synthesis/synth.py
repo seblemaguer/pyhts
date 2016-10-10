@@ -54,6 +54,7 @@ import logging
 from shutil import copyfile # For copying files
 from pyhts_configuration import Configuration
 import numpy as np
+from audio_generation.STRAIGHTGeneration import STRAIGHTGeneration
 
 ################################################################################
 ### Utils
@@ -322,54 +323,6 @@ def parameter_conversion(_out_path, gen_labfile_base_lst):
         os.remove('%s/%s.bap' % (_out_path, base))
         # os.remove('%s/%s.dur' % (_out_path, base))
 
-
-def straight_generation(_out_path, gen_labfile_base_lst):
-    """
-    """
-    # Generate STRAIGHT script
-    with open(conf.STRAIGHT_SCRIPT, 'w') as f:
-        # Header
-        f.write("path(path, '%s');\n" % conf.STRAIGHT_PATH)
-        f.write("prm.spectralUpdateInterval = %f;\n" % conf.SIGNAL['frameshift'])
-        f.write("prm.levelNormalizationIndicator = 0;\n\n")
-
-        # Read STRAIGHT params
-        for base in gen_labfile_base_lst:
-            f.write("fid_sp = fopen('%s/%s.sp', 'r', 'ieee-le');\n" % (_out_path, base))
-            f.write("fid_ap = fopen('%s/%s.ap', 'r', 'ieee-le');\n" % (_out_path, base))
-            f.write("fid_f0 = fopen('%s/%s.f0', 'r', 'ieee-le');\n" % (_out_path, base))
-
-            nb_frames = os.path.getsize('%s/%s.f0' % (_out_path, base)) / 4
-            f.write("sp = fread(fid_sp, [%d %d], 'float');\n" % (1025, nb_frames))
-            f.write("ap = fread(fid_ap, [%d %d], 'float');\n" % (1025, nb_frames))
-            f.write("f0 = fread(fid_f0, [%d %d], 'float');\n" % (1, nb_frames))
-
-            f.write("fclose(fid_sp);\n")
-            f.write("fclose(fid_ap);\n")
-            f.write("fclose(fid_f0);\n")
-
-            # Spectrum normalization    # FIXME (why ?) => not compatible with our corpus podalydes
-            f.write("sp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
-
-            # Synthesis process part 2
-            f.write("[sy] = exstraightsynth(f0, sp, ap, %d, prm);\n" % conf.SIGNAL["samplerate"])
-            f.write("audiowrite('%s/%s.wav', sy, %d);\n" % (_out_path, base, conf.SIGNAL["samplerate"]))
-
-        # Ending
-        f.write("quit;\n")
-
-    # Synthesis!
-    cmd = '%s -nojvm -nosplash -nodisplay < %s' % (conf.MATLAB, conf.STRAIGHT_SCRIPT)
-    subprocess.call(cmd.split(), stdout=out_handle)
-
-    # Clean  [TODO: do with options]
-    os.remove(conf.STRAIGHT_SCRIPT)
-    for base in gen_labfile_base_lst:
-        os.remove('%s/%s.sp' % (_out_path, base))
-        os.remove('%s/%s.ap' % (_out_path, base))
-        os.remove('%s/%s.f0' % (_out_path, base))
-
-
 ################################################################################
 ### Main function
 ################################################################################
@@ -492,7 +445,8 @@ def main():
 
     # 6. Call straight to synthesize
     logger.info("Audio rendering (could be quite long)")
-    straight_generation(out_path, gen_labfile_base_lst)
+    straight_generation = STRAIGHTGeneration(conf, out_handle)
+    straight_generation.generate(out_path, gen_labfile_base_lst)
 
 
 ################################################################################
