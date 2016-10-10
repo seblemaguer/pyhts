@@ -520,13 +520,14 @@ if __name__ == '__main__':
                           help="Directory which contains the coefficient trees")
         argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir', required=True,
                           help="Directory which contains the duration tree")
+        argp.add_argument('-p', '--pg_type', dest='pg_type', default=0,
+                          help="Parameter generation type")
+
         # Options
         argp.add_argument('-s', '--with_scp', dest='input_is_list', action='store_true',
                           default=False, help="the input is a scp formatted file")
         argp.add_argument('-g', '--gv', dest='gv_dir',
                           help="Define the global variance model directory")
-        argp.add_argument('-p', '--pg_type', dest='pg_type',
-                          help="Parameter generation type")
 
         # Imposing
         argp.add_argument("-D", "--imposed_duration", dest="imposed_duration", action="store_true",
