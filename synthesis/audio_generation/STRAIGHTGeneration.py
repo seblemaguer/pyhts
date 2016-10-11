@@ -70,24 +70,30 @@ class STRAIGHTGeneration:
             else:
                 f.write("for i=1:%d\n" % nb_elts)
 
-            f.write("\tfid_sp = fopen(sprintf('%s/%s.sp', out_path, basenames{i}), 'r', 'ieee-le');\n")
-            f.write("\tfid_ap = fopen(sprintf('%s/%s.ap', out_path, basenames{i}), 'r', 'ieee-le');\n")
-            f.write("\tfid_f0 = fopen(sprintf('%s/%s.f0', out_path, basenames{i}), 'r', 'ieee-le');\n")
 
-            f.write("\tsp = fread(fid_sp, [fft_len nb_frames(i)], 'float');\n")
-            f.write("\tap = fread(fid_ap, [fft_len nb_frames(i)], 'float');\n")
-            f.write("\tf0 = fread(fid_f0, [1 nb_frames(i)], 'float');\n")
+            f.write("\ttry\n")
+            f.write("\t\tfid_sp = fopen(sprintf('%s/%s.sp', out_path, basenames{i}), 'r', 'ieee-le');\n")
+            f.write("\t\tfid_ap = fopen(sprintf('%s/%s.ap', out_path, basenames{i}), 'r', 'ieee-le');\n")
+            f.write("\t\tfid_f0 = fopen(sprintf('%s/%s.f0', out_path, basenames{i}), 'r', 'ieee-le');\n")
 
-            f.write("\tfclose(fid_sp);\n")
-            f.write("\tfclose(fid_ap);\n")
-            f.write("\tfclose(fid_f0);\n")
+            f.write("\t\tsp = fread(fid_sp, [fft_len nb_frames(i)], 'float');\n")
+            f.write("\t\tap = fread(fid_ap, [fft_len nb_frames(i)], 'float');\n")
+            f.write("\t\tf0 = fread(fid_f0, [1 nb_frames(i)], 'float');\n")
+
+            f.write("\t\tfclose(fid_sp);\n")
+            f.write("\t\tfclose(fid_ap);\n")
+            f.write("\t\tfclose(fid_f0);\n")
 
             # Spectrum normalization    # FIXME (why ?) => not compatible with our corpus podalydes
-            f.write("\tsp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
+            f.write("\t\tsp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
 
             # Synthesis process part 2
-            f.write("\t[sy] = exstraightsynth(f0, sp, ap, samplerate, prm);\n")
-            f.write("\taudiowrite(sprintf('%s/%s.wav', out_path, basenames{i}), sy, samplerate);\n")
+            f.write("\t\t[sy] = exstraightsynth(f0, sp, ap, samplerate, prm);\n")
+            f.write("\t\taudiowrite(sprintf('%s/%s.wav', out_path, basenames{i}), sy, samplerate);\n")
+
+            f.write("\tcatch me\n")
+            f.write("\t\twarning(sprintf('cannot render %s: %s', basenames{i}, me.message));\n")
+            f.write("\tend;\n")
             f.write("end;\n")
 
             # Ending
