@@ -31,11 +31,15 @@ from shutil import copyfile # For copying files
 # Utils
 ###############################################################################
 class ParameterConversion(Thread):
-    def __init__(self, conf, _out_path, base):
+    def __init__(self, conf, out_path, base, logger):
         Thread.__init__(self)
+        self.logger = logger
         self.conf = conf
-        self._out_path = _out_path
+        self.out_path = out_path
         self.base = base
+
+        self.SOPR = "sopr"
+        self.MGC2SP = "mgc2sp"
 
     def run(self):
         # bap => aperiodicity
@@ -43,38 +47,40 @@ class ParameterConversion(Thread):
             if cur_stream["kind"] == "lf0":
                 # lf0 => f0
                 cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
-                  (self.conf.SOPR, self._out_path, self.base)
-                with open('%s/%s.f0' % (self._out_path, self.base), 'w') as f:
+                  (self.SOPR, self.out_path, self.base)
+                with open('%s/%s.f0' % (self.out_path, self.base), 'w') as f:
                     subprocess.call(cmd.split(), stdout=f)
             elif cur_stream["kind"] == "bap":
                 cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
-                  (self.conf.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self._out_path, self.base)
-                with open('%s/%s.ap' % (self._out_path, self.base), 'w') as f:
+                  (self.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self.out_path, self.base)
+                with open('%s/%s.ap' % (self.out_path, self.base), 'w') as f:
                     subprocess.call(cmd.split(), stdout=f)
             elif cur_stream["kind"] == "mgc":
                 # mgc => spectrum TODO
                 cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
-                  (self.conf.MGC2SP, self.conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"], self._out_path, self.base)
-                with open('%s/%s.sp' % (self._out_path, self.base), 'w') as f:
+                  (self.MGC2SP, self.conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"], self.out_path, self.base)
+                with open('%s/%s.sp' % (self.out_path, self.base), 'w') as f:
                     subprocess.call(cmd.split(), stdout=f)
 
         # Clean [TODO: do with options]
-        os.remove('%s/%s.lf0' % (self._out_path, self.base))
-        os.remove('%s/%s.mgc' % (self._out_path, self.base))
-        os.remove('%s/%s.bap' % (self._out_path, self.base))
-        os.remove('%s/%s.dur' % (self._out_path, self.base))
+        os.remove('%s/%s.lf0' % (self.out_path, self.base))
+        os.remove('%s/%s.mgc' % (self.out_path, self.base))
+        os.remove('%s/%s.bap' % (self.out_path, self.base))
+        os.remove('%s/%s.dur' % (self.out_path, self.base))
 
 ###############################################################################
 # Functions
 ###############################################################################
 class STRAIGHTGeneration:
 
-    def __init__(self, conf, out_handle, is_parallel):
+    def __init__(self, conf, out_handle, logger, is_parallel):
         self.conf = conf
+        self.logger = logger
         self.out_handle = out_handle
         self.is_parallel = is_parallel
+        self.MATLAB="matlab"
 
-    def straight_part(self, _out_path, gen_labfile_lst):
+    def straight_part(self, out_path, gen_labfile_base_lst):
         """
         """
         # Generate STRAIGHT script
@@ -85,7 +91,7 @@ class STRAIGHTGeneration:
             f.write("prm.levelNormalizationIndicator = 0;\n\n")
 
             # Now some parameters
-            f.write("out_path = '%s';\n" % _out_path)
+            f.write("out_path = '%s';\n" % out_path)
             f.write("fft_len = %d;\n" % 1025) # FIXME: hardcoded
             f.write("samplerate = %d;\n" % self.conf.SIGNAL["samplerate"])
             f.write("basenames = {};")
@@ -96,7 +102,7 @@ class STRAIGHTGeneration:
             f.write("nb_frames = [];\n")
             for i in range(1, len(gen_labfile_base_lst)+1):
                 base = gen_labfile_base_lst[i-1]
-                nb_frames = os.path.getsize('%s/%s.f0' % (_out_path, base)) / 4
+                nb_frames = os.path.getsize('%s/%s.f0' % (out_path, base)) / 4
                 f.write("nb_frames(%d) = %d;\n" % (i, nb_frames))
             f.write("\n")
 
@@ -137,25 +143,25 @@ class STRAIGHTGeneration:
             f.write("quit;\n")
 
         # Synthesis!
-        cmd = '%s -nojvm -nosplash -nodisplay < %s' % (self.conf.MATLAB, self.conf.STRAIGHT_SCRIPT)
+        cmd = '%s -nojvm -nosplash -nodisplay < %s' % (self.MATLAB, self.conf.STRAIGHT_SCRIPT)
         subprocess.call(cmd.split(), stdout=self.out_handle)
 
         # Clean  [TODO: do with options]
         # os.remove(self.conf.STRAIGHT_SCRIPT)
         for base in gen_labfile_base_lst:
-            os.remove('%s/%s.sp' % (_out_path, base))
-            os.remove('%s/%s.ap' % (_out_path, base))
-            os.remove('%s/%s.f0' % (_out_path, base))
+            os.remove('%s/%s.sp' % (out_path, base))
+            os.remove('%s/%s.ap' % (out_path, base))
+            os.remove('%s/%s.f0' % (out_path, base))
 
 
 
-    def parameter_conversion(self, _out_path, gen_labfile_base_lst, parallel=False):
+    def parameter_conversion(self, out_path, gen_labfile_base_lst, parallel=False):
         """
         Convert parameter to STRAIGHT params
         """
         list_threads = []
         for base in gen_labfile_base_lst:
-            thread = ParameterConversion(self.conf, _out_path, base)
+            thread = ParameterConversion(self.conf, out_path, base, self.logger)
             thread.start()
 
             if not parallel:
@@ -167,7 +173,9 @@ class STRAIGHTGeneration:
             for thread in list_threads:
                 thread.join()
 
-    def generate(self, _out_path, gen_labfile_base_lst):
+    def generate(self, out_path, gen_labfile_base_lst):
+        self.logger.info("Parameter conversion (could be quite long)")
         self.parameter_conversion(out_path, gen_labfile_base_lst, self.is_parallel)
 
-        self.straight_part(_out_path, gen_labfile_lst)
+        self.logger.info("Audio rendering (could be quite long)")
+        self.straight_part(out_path, gen_labfile_base_lst)

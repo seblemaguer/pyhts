@@ -45,11 +45,8 @@ class Configuration(object):
         self.TMP_CMP_MMF = os.path.join(self.TMP_PATH, "cmp_%d.mmf" % os.getpid())
         self.TMP_DUR_MMF = os.path.join(self.TMP_PATH, "dur_%d.mmf" % os.getpid())
 
-        self.MATLAB="matlab"
         self.HHEd = "HHEd"
         self.HMGenS = "HMGenS"
-        self.SOPR = "sopr"
-        self.MGC2SP = "mgc2sp"
 
         if (config_fname is not None):
             self.parseConfig(config_fname)
@@ -67,14 +64,7 @@ class Configuration(object):
         except KeyError:
             raise Exception("A kind of synthesis needs to be defined (straight, ....)")
 
-        # FIXME: Only straight accepted
-        cmp_type = ["lf0", "bap", "mgc"] #, "spline"]
         self.STREAMS = conf["models"]["cmp"]["streams"];
-        for cur_stream in self.STREAMS:
-            if cur_stream["kind"] in cmp_type:
-                pass
-            else:
-                raise Exception("Unknown type : %s" % cur_stream["kind"])
 
         self.GEN = conf["settings"]["synthesis"]
         self.MODELLING = conf["settings"]["training"]
@@ -103,42 +93,3 @@ class Configuration(object):
         # Add pathes
         self.PROJECT_DIR = conf["data"]["project_dir"]
         self.STRAIGHT_PATH = conf["path"]["straight"]
-
-        try:
-            self.MATLAB=conf["path"]["matlab"]
-        except KeyError:
-            pass
-
-        # HTS needed commands
-        try:
-            self.HMGenS=conf["path"]["hts"] + "/HMGenS"
-            self.HHEd=conf["path"]["hts"] + "/HHEd"
-        except KeyError:
-            pass
-
-        try:
-            self.HMGenS=conf["path"]["hmgens"]
-        except KeyError:
-            pass
-
-        try:
-            self.HHEd=conf["path"]["hhed"]
-        except KeyError:
-            pass
-
-        # SPTK needed commands
-        try:
-            self.SOPR=conf["path"]["sptk"] + "/sopr"
-            self.MGC2SP=conf["path"]["sptk"] + "/mgc2sp"
-        except KeyError:
-            pass
-
-        try:
-            self.SOPR=conf["path"]["sopr"]
-        except KeyError:
-            pass
-
-        try:
-            self.MGC2SP=conf["path"]["mgc2sp"]
-        except KeyError:
-            pass

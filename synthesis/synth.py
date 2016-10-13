@@ -326,25 +326,6 @@ def generate_synthesis_configuration(_use_gv):
 
 
 ################################################################################
-### Parameter transformation function
-################################################################################
-
-# TODO : add post-filtering functions
-# def post_filtering_mcp(base, _out_path):
-#     """
-#     """
-#     str_pf_mcp = '%f' % SIGNAL['PF_MCP']
-#     cmd = 'echo 1 1 %s | x2x +af > %s/weights' % (' '.join([str_pf_mcp] * ORDER['MGC']), _out_path)
-
-#     # TODO: finish but not needed for the moment
-#     pass
-
-#     # # Clean
-#     # os.remove('%s/weights' % _out_path)
-
-
-
-################################################################################
 ### Main function
 ################################################################################
 
@@ -449,7 +430,6 @@ def main():
     subprocess.call(cmd.split(), stdout=out_handle)
 
     # 5. Convert/adapt parameters
-    logger.info("Parameter conversion (could be quite long)")
     if args.impose_f0_dir and args.impose_interpolated_f0_dir:
         raise Exception("cannot impose 2 kind of F0 at the same time")
 
@@ -465,8 +445,7 @@ def main():
         copy_imposed_file(args.impose_bap_dir, out_path, gen_labfile_base_lst, "bap")
 
     # 6. Call straight to synthesize
-    logger.info("Audio rendering (could be quite long)")
-    straight_generation = audio_generation.generateSynthesizer(conf, out_handle, args.is_parallel)
+    straight_generation = audio_generation.generateSynthesizer(conf, out_handle, logger, args.is_parallel)
     straight_generation.generate(out_path, gen_labfile_base_lst)
 
 

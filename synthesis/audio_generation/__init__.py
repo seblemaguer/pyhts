@@ -15,8 +15,8 @@ LICENSE
 from STRAIGHTGeneration import *
 
 
-def generateSynthesizer(conf, out_handle):
+def generateSynthesizer(conf, out_handle, logger, is_parallel=False):
     try:
-        return globals()[conf.kind.upper() + "Generation"](conf, out_handle)
+        return globals()[conf.kind.upper() + "Generation"](conf, out_handle, logger,is_parallel)
     except KeyError:
         raise Exception("Synthesizer " + conf.kind.upper() + "Generation" + " unknown")
