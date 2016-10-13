@@ -22,9 +22,47 @@ import subprocess       # Shell command calling
 import re
 import logging
 
+from threading import Thread
+
 from shutil import copyfile # For copying files
 
-LEVEL = [logging.WARNING, logging.INFO, logging.DEBUG]
+
+###############################################################################
+# Utils
+###############################################################################
+class ParameterConversion(Thread):
+    def __init__(self, conf, _out_path, base):
+        Thread.__init__(self)
+        self.conf = conf
+        self._out_path = _out_path
+        self.base = base
+
+    def run(self):
+        # bap => aperiodicity
+        for cur_stream in self.conf.STREAMS:
+            if cur_stream["kind"] == "lf0":
+                # lf0 => f0
+                cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
+                  (self.conf.SOPR, self._out_path, self.base)
+                with open('%s/%s.f0' % (self._out_path, self.base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
+            elif cur_stream["kind"] == "bap":
+                cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
+                  (self.conf.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self._out_path, self.base)
+                with open('%s/%s.ap' % (self._out_path, self.base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
+            elif cur_stream["kind"] == "mgc":
+                # mgc => spectrum TODO
+                cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
+                  (self.conf.MGC2SP, self.conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"], self._out_path, self.base)
+                with open('%s/%s.sp' % (self._out_path, self.base), 'w') as f:
+                    subprocess.call(cmd.split(), stdout=f)
+
+        # Clean [TODO: do with options]
+        os.remove('%s/%s.lf0' % (self._out_path, self.base))
+        os.remove('%s/%s.mgc' % (self._out_path, self.base))
+        os.remove('%s/%s.bap' % (self._out_path, self.base))
+        os.remove('%s/%s.dur' % (self._out_path, self.base))
 
 ###############################################################################
 # Functions
@@ -36,8 +74,7 @@ class STRAIGHTGeneration:
         self.out_handle = out_handle
         self.is_parallel = is_parallel
 
-
-    def generate(self, _out_path, gen_labfile_base_lst):
+    def straight_part(self, _out_path, gen_labfile_lst):
         """
         """
         # Generate STRAIGHT script
@@ -109,3 +146,28 @@ class STRAIGHTGeneration:
             os.remove('%s/%s.sp' % (_out_path, base))
             os.remove('%s/%s.ap' % (_out_path, base))
             os.remove('%s/%s.f0' % (_out_path, base))
+
+
+
+    def parameter_conversion(self, _out_path, gen_labfile_base_lst, parallel=False):
+        """
+        Convert parameter to STRAIGHT params
+        """
+        list_threads = []
+        for base in gen_labfile_base_lst:
+            thread = ParameterConversion(self.conf, _out_path, base)
+            thread.start()
+
+            if not parallel:
+                thread.join()
+            else:
+                list_threads.append(thread)
+
+        if parallel:
+            for thread in list_threads:
+                thread.join()
+
+    def generate(self, _out_path, gen_labfile_base_lst):
+        self.parameter_conversion(out_path, gen_labfile_base_lst, self.is_parallel)
+
+        self.straight_part(_out_path, gen_labfile_lst)
