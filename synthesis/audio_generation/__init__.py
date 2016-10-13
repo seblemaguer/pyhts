@@ -12,7 +12,7 @@ LICENSE
     Created: 10 October 2016
 """
 
-from STRAIGHTGeneration import *
+from straightgeneration import *
 
 
 def generateSynthesizer(conf, out_handle, logger, is_parallel=False):
