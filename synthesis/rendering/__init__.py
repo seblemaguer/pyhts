@@ -12,10 +12,12 @@ LICENSE
     Created: 10 October 2016
 """
 
-from straightgeneration import *
 
+from rendering.straightgeneration import *
+from rendering.worldgeneration import *
+from rendering.emageneration import *
 
-def generateSynthesizer(conf, out_handle, logger, is_parallel=False):
+def generateRenderer(conf, out_handle, logger, is_parallel=False):
     try:
         return globals()[conf.kind.upper() + "Generation"](conf, out_handle, logger,is_parallel)
     except KeyError:

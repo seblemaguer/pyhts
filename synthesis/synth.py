@@ -56,9 +56,7 @@ from threading import Thread
 from shutil import copyfile # For copying files
 from pyhts_configuration import Configuration
 import numpy as np
-from audio_generation import STRAIGHTGeneration
-import audio_generation
-
+import rendering
 
 ################################################################################
 ### Model composition Threads
@@ -161,8 +159,6 @@ class GVComposition(Thread):
             (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.gv_dir+'/clustered.mmf', self.conf.TMP_GV_MMF, self.conf.GV_HED_UNSEEN_BASE+'.hed',
              self.gv_dir+'/gv.list')
         subprocess.call(cmd.split(), stdout=self.out_handle)
-        # FIXME: change directory to file (args.gv_dir+'/clustered.mmf')
-
 
 ################################################################################
 ### Utils
@@ -191,6 +187,7 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
 
         # Finally save the F0
         lf0.tofile("%s/%s.%s" % (_out_path, base, ext))
+
 
 ################################################################################
 ### Config + script functions
@@ -294,7 +291,10 @@ def generate_synthesis_configuration(_use_gv):
         for cur_stream in conf.STREAMS:
             win = ""
             for w in cur_stream["winfiles"]:
-                win = win + " %s/%s" % (conf.PROJECT_DIR, w)
+                if project_path is not None:
+                    win = win + " %s/%s/%s" % (project_path, "win", os.path.basename(w))
+                else:
+                    win = win + " %s/%s" % (conf.PROJECT_DIR, w)
             f.write(' StrVec %d%s' % (len(cur_stream["winfiles"]), win))
         f.write('"\n')
 
@@ -406,7 +406,7 @@ def main():
 
     #    * GV
     if use_gv:
-        thread_gv = GVComposition(conf, args.gv_dir, out_handle)
+        thread_gv = GVComposition(conf, gv_path, out_handle)
         thread_gv.start()
         thread_gv.join()
 
@@ -445,8 +445,8 @@ def main():
         copy_imposed_file(args.impose_bap_dir, out_path, gen_labfile_base_lst, "bap")
 
     # 6. Call straight to synthesize
-    straight_generation = audio_generation.generateSynthesizer(conf, out_handle, logger, args.is_parallel)
-    straight_generation.generate(out_path, gen_labfile_base_lst)
+    renderer = rendering.generateRenderer(conf, out_handle, logger, args.is_parallel)
+    renderer.render(out_path, gen_labfile_base_lst)
 
 
 ################################################################################
@@ -457,29 +457,32 @@ if __name__ == '__main__':
     try:
         argp = ap.ArgumentParser(description=globals()['__doc__'], formatter_class=ap.RawDescriptionHelpFormatter)
 
-        # argp.add_argument('--version', action='version', version='$Id$')
         argp.add_argument('-v', '--verbose', action='store_true',
                           default=False, help='verbose output')
 
-        # models
-        argp.add_argument('-m', '--cmp', dest='cmp_model_fname', required=True,
-                          help="CMP model file", metavar='FILE')
-        argp.add_argument('-d', '--dur', dest='dur_model_fname', required=True,
-                          help="Duration model file", metavar='FILE')
-        argp.add_argument('-l', '--list', dest='full_list_fname', required=True,
-                          help="Label list training lab files", metavar='FILE')
-        argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir', required=True,
-                          help="Directory which contains the coefficient trees")
-        argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir', required=True,
-                          help="Directory which contains the duration tree")
-        argp.add_argument('-p', '--pg_type', dest='pg_type', default=0,
-                          help="Parameter generation type")
+        # Configuration
+        argp.add_argument('-c', '--config', dest='config_fname',
+                          help="Configuration file", metavar='FILE')
 
-        # Options
-        argp.add_argument('-s', '--with_scp', dest='input_is_list', action='store_true',
-                          default=False, help="the input is a scp formatted file")
+        # models
+        argp.add_argument('-m', '--cmp', dest='cmp_model_fname',
+                          help="CMP model file", metavar='FILE')
+        argp.add_argument('-d', '--dur', dest='dur_model_fname',
+                          help="Duration model file", metavar='FILE')
+        argp.add_argument('-l', '--list', dest='full_list_fname',
+                          help="Label list training lab files", metavar='FILE')
+        argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir',
+                          help="Directory which contains the coefficient trees")
+        argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir',
+                          help="Directory which contains the duration tree")
         argp.add_argument('-g', '--gv', dest='gv_dir',
                           help="Define the global variance model directory")
+
+        # Options
+        argp.add_argument('-p', '--pg_type', dest='pg_type', default=0,
+                          help="Parameter generation type")
+        argp.add_argument('-s', '--with_scp', dest='input_is_list', action='store_true',
+                          default=False, help="the input is a scp formatted file")
         argp.add_argument('-P', '--parallel', dest="is_parallel", action="store_true",
                           default=False, help="Activate parallel mode")
 
@@ -496,8 +499,6 @@ if __name__ == '__main__':
                           help="BAP directory to use at the synthesis level")
 
         # input/output
-        argp.add_argument('-c', '--config', dest='config_fname', required=True,
-                          help="Configuration file", metavar='FILE')
         argp.add_argument('-i', '--input', dest='input_fname', required=True,
                           help="Input lab file for synthesis", metavar='FILE')
         argp.add_argument('-o', '--output', dest='output', required=True,
@@ -509,14 +510,32 @@ if __name__ == '__main__':
         conf = Configuration(args.config_fname)
 
         # PATH
-        cmp_model_fpath = os.path.join(conf.CWD_PATH, args.cmp_model_fname)
-        dur_model_fpath = os.path.join(conf.CWD_PATH, args.dur_model_fname)
-        full_list_fpath = os.path.join(conf.CWD_PATH, args.full_list_fname)
-        cmp_tree_path = os.path.join(conf.CWD_PATH, args.cmp_tree_dir)
-        dur_tree_path = os.path.join(conf.CWD_PATH, args.dur_tree_dir)
+        if args.cmp_model_fname is not None:
+            cmp_model_fpath = os.path.join(conf.CWD_PATH, args.cmp_model_fname)
+            dur_model_fpath = os.path.join(conf.CWD_PATH, args.dur_model_fname)
+            full_list_fpath = os.path.join(conf.CWD_PATH, args.full_list_fname)
+            cmp_tree_path = os.path.join(conf.CWD_PATH, args.cmp_tree_dir)
+            dur_tree_path = os.path.join(conf.CWD_PATH, args.dur_tree_dir)
+
+            # GV checking
+            use_gv = args.gv_dir
+            gv_path = args.gv_dir
+        else:
+            project_path = os.path.dirname(args.config_fname)
+            cmp_model_fpath = os.path.join(project_path, "models/re_clustered_cmp.mmf")
+            dur_model_fpath = os.path.join(project_path, "models/re_clustered_dur.mmf")
+            full_list_fpath = os.path.join(project_path, "full.list")
+            cmp_tree_path = os.path.join(project_path, "trees")
+            dur_tree_path = os.path.join(project_path, "trees")
+
+            use_gv = False
+            if (os.path.isdir(os.path.join(project_path, "gv"))):
+                use_gv = True
+                gv_path = os.path.join(project_path, "gv")
+
+        # Out directory
         out_path = os.path.join(conf.CWD_PATH, args.output)
 
-        use_gv = args.gv_dir
 
         # Debug time
         logger = setup_logging(args.verbose)

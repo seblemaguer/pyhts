@@ -26,7 +26,7 @@ from threading import Thread
 
 from shutil import copyfile # For copying files
 
-from parameterconversion import ParameterConversion
+from rendering.parameterconversion import ParameterConversion
 
 ###############################################################################
 # Functions
@@ -133,7 +133,7 @@ class STRAIGHTGeneration:
             for thread in list_threads:
                 thread.join()
 
-    def generate(self, out_path, gen_labfile_base_lst):
+    def render(self, out_path, gen_labfile_base_lst):
         self.logger.info("Parameter conversion (could be quite long)")
         self.parameter_conversion(out_path, gen_labfile_base_lst, self.is_parallel)
 

@@ -51,7 +51,6 @@ class ParameterConversion(Thread):
                 with open('%s/%s.ap' % (self.out_path, self.base), 'w') as f:
                     subprocess.call(cmd.split(), stdout=f)
             elif cur_stream["kind"] == "mgc":
-                # mgc => spectrum TODO
                 cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
                   (self.MGC2SP, self.conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"], self.out_path, self.base)
                 with open('%s/%s.sp' % (self.out_path, self.base), 'w') as f:

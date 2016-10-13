@@ -11,5 +11,3 @@ LICENSE
     This script is in the public domain, free from copyrights or restrictions.
     Created: 10 October 2016
 """
-
-import audio_generation
