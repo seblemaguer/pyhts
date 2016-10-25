@@ -30,13 +30,14 @@ from rendering.parameterconversion import ParameterConversion
 
 
 class WORLDThread(Thread):
-    def __init__(self, conf, out_path, base, out_handle, logger):
+    def __init__(self, conf, out_path, base, out_handle, logger, preserve):
         Thread.__init__(self)
         self.logger = logger
         self.out_handle = out_handle
         self.conf = conf
         self.out_path = out_path
         self.base = base
+        self.preserve = preserve
 
     def run(self):
         samplerate = str(self.conf.SIGNAL['samplerate'])
@@ -57,19 +58,23 @@ class WORLDThread(Thread):
             subprocess.call(cmd, stdout=f)
 
         with open(dsp_fname, "w") as f:
-            cmd = ["x2x", "+fd", sp_fname]
+            cmd = ["bash" , "-c", "cat " + sp_fname + " | sopr -d 32768.0 -P  | x2x +fd" ]
             subprocess.call(cmd, stdout=f)
 
         with open(dap_fname, "w") as f:
-            cmd = ["x2x", "+fd", ap_fname]
+            cmd = ["bash" , "-c", "cat " + ap_fname + " | sopr -d 32768.0 -P  | sopr -d 1500 | sopr -m 1200 | x2x +fd" ]
             subprocess.call(cmd, stdout=f)
 
         cmd = ["world_synthesis", "-s", samplerate, "-f", frameshift, df0_fname, dsp_fname, dap_fname, wav_fname]
         subprocess.call(cmd, stdout=self.out_handle)
 
-        # os.remove(f0_fname)
-        # os.remove(ap_fname)
-        # os.remove(sp_fname)
+        if not self.preserve:
+            os.remove(f0_fname)
+            os.remove(ap_fname)
+            os.remove(sp_fname)
+            os.remove(df0_fname)
+            os.remove(dap_fname)
+            os.remove(dsp_fname)
 
 
 ###############################################################################
@@ -77,17 +82,17 @@ class WORLDThread(Thread):
 ###############################################################################
 class WORLDGeneration:
 
-    def __init__(self, conf, out_handle, logger, is_parallel):
+    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
         self.is_parallel = is_parallel
-        self.MATLAB="matlab"
+        self.preserve = preserve
 
     def world_part(self, out_path, gen_labfile_base_lst):
         list_threads = []
         for base in gen_labfile_base_lst:
-            thread = WORLDThread(self.conf, out_path, base, self.out_handle, self.logger)
+            thread = WORLDThread(self.conf, out_path, base, self.out_handle, self.logger, self.preserve)
             thread.start()
 
             if not self.is_parallel:
@@ -107,7 +112,7 @@ class WORLDGeneration:
         """
         list_threads = []
         for base in gen_labfile_base_lst:
-            thread = ParameterConversion(self.conf, out_path, base, self.logger)
+            thread = ParameterConversion(self.conf, out_path, base, self.logger, self.preserve)
             thread.start()
 
             if not self.is_parallel:

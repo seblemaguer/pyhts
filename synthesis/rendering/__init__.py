@@ -17,8 +17,8 @@ from rendering.straightgeneration import *
 from rendering.worldgeneration import *
 from rendering.emageneration import *
 
-def generateRenderer(conf, out_handle, logger, is_parallel=False):
+def generateRenderer(conf, out_handle, logger, is_parallel=False, preserve=False):
     try:
-        return globals()[conf.kind.upper() + "Generation"](conf, out_handle, logger,is_parallel)
+        return globals()[conf.kind.upper() + "Generation"](conf, out_handle, logger, is_parallel, preserve)
     except KeyError:
         raise Exception("Synthesizer " + conf.kind.upper() + "Generation" + " unknown")

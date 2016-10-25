@@ -33,11 +33,12 @@ from rendering.parameterconversion import ParameterConversion
 ###############################################################################
 class STRAIGHTGeneration:
 
-    def __init__(self, conf, out_handle, logger, is_parallel):
+    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
         self.is_parallel = is_parallel
+        self.preserve = preserve
         self.MATLAB="matlab"
 
     def straight_part(self, out_path, gen_labfile_base_lst):
@@ -107,35 +108,36 @@ class STRAIGHTGeneration:
         subprocess.call(cmd.split(), stdout=self.out_handle)
 
         # Clean  [TODO: do with options]
-        # os.remove(self.conf.STRAIGHT_SCRIPT)
-        for base in gen_labfile_base_lst:
-            os.remove('%s/%s.sp' % (out_path, base))
-            os.remove('%s/%s.ap' % (out_path, base))
-            os.remove('%s/%s.f0' % (out_path, base))
+        if not self.preserve:
+            os.remove(self.conf.STRAIGHT_SCRIPT)
+            for base in gen_labfile_base_lst:
+                os.remove('%s/%s.sp' % (out_path, base))
+                os.remove('%s/%s.ap' % (out_path, base))
+                os.remove('%s/%s.f0' % (out_path, base))
 
 
 
-    def parameter_conversion(self, out_path, gen_labfile_base_lst, parallel=False):
+    def parameter_conversion(self, out_path, gen_labfile_base_lst):
         """
         Convert parameter to STRAIGHT params
         """
         list_threads = []
         for base in gen_labfile_base_lst:
-            thread = ParameterConversion(self.conf, out_path, base, self.logger)
+            thread = ParameterConversion(self.conf, out_path, base, self.logger, self.preserve)
             thread.start()
 
-            if not parallel:
+            if not self.is_parallel:
                 thread.join()
             else:
                 list_threads.append(thread)
 
-        if parallel:
+        if self.is_parallel:
             for thread in list_threads:
                 thread.join()
 
     def render(self, out_path, gen_labfile_base_lst):
         self.logger.info("Parameter conversion (could be quite long)")
-        self.parameter_conversion(out_path, gen_labfile_base_lst, self.is_parallel)
+        self.parameter_conversion(out_path, gen_labfile_base_lst)
 
         self.logger.info("Audio rendering (could be quite long)")
         self.straight_part(out_path, gen_labfile_base_lst)

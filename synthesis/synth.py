@@ -50,7 +50,7 @@ import time
 import subprocess       # Shell command calling
 import re
 import logging
-
+import shutil
 
 from threading import Thread
 from shutil import copyfile # For copying files
@@ -445,9 +445,11 @@ def main():
         copy_imposed_file(args.impose_bap_dir, out_path, gen_labfile_base_lst, "bap")
 
     # 6. Call straight to synthesize
-    renderer = rendering.generateRenderer(conf, out_handle, logger, args.is_parallel)
+    renderer = rendering.generateRenderer(conf, out_handle, logger, args.is_parallel, args.preserve_intermediate)
     renderer.render(out_path, gen_labfile_base_lst)
 
+
+    shutil.rmtree(conf.TMP_PATH)
 
 ################################################################################
 ### Enveloping
@@ -485,6 +487,8 @@ if __name__ == '__main__':
                           default=False, help="the input is a scp formatted file")
         argp.add_argument('-P', '--parallel', dest="is_parallel", action="store_true",
                           default=False, help="Activate parallel mode")
+        argp.add_argument('-R', '--preserve', dest="preserve_intermediate", action="store_true",
+                          default=False, help="do not delete the intermediate and temporary files")
 
         # Imposing
         argp.add_argument("-D", "--imposed_duration", dest="imposed_duration", action="store_true",
