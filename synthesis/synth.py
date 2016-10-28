@@ -449,7 +449,8 @@ def main():
     renderer.render(out_path, gen_labfile_base_lst)
 
 
-    shutil.rmtree(conf.TMP_PATH)
+    if not args.preserve_intermediate:
+        shutil.rmtree(conf.TMP_PATH)
 
 ################################################################################
 ### Enveloping

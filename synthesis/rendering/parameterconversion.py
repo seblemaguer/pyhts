@@ -47,7 +47,7 @@ class ParameterConversion(Thread):
                 with open('%s/%s.f0' % (self.out_path, self.base), 'w') as f:
                     subprocess.call(cmd.split(), stdout=f)
             elif cur_stream["kind"] == "bap":
-                cmd = '%s -a %f -g 0 -m %d -l 2048 -o 2 %s/%s.bap' % \
+                cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
                   (self.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self.out_path, self.base)
                 with open('%s/%s.ap' % (self.out_path, self.base), 'w') as f:
                     subprocess.call(cmd.split(), stdout=f)

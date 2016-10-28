@@ -55,7 +55,7 @@ class STRAIGHTGeneration:
             f.write("out_path = '%s';\n" % out_path)
             f.write("fft_len = %d;\n" % 1025) # FIXME: hardcoded
             f.write("samplerate = %d;\n" % self.conf.SIGNAL["samplerate"])
-            f.write("basenames = {};")
+            f.write("basenames = {};\n")
             for i in range(1, len(gen_labfile_base_lst)+1):
                 f.write("basenames{%d} = '%s';\n" % (i, gen_labfile_base_lst[i-1]))
             f.write("\n")
@@ -107,7 +107,6 @@ class STRAIGHTGeneration:
         cmd = '%s -nojvm -nosplash -nodisplay < %s' % (self.MATLAB, self.conf.STRAIGHT_SCRIPT)
         subprocess.call(cmd.split(), stdout=self.out_handle)
 
-        # Clean  [TODO: do with options]
         if not self.preserve:
             os.remove(self.conf.STRAIGHT_SCRIPT)
             for base in gen_labfile_base_lst:
