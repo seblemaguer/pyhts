@@ -93,5 +93,5 @@ class Configuration(object):
         # Add pathes
         self.PROJECT_DIR = conf["data"]["project_dir"]
 
-        if self.kind.lower() == "straight":
+        if "straight" in conf["path"]:
             self.STRAIGHT_PATH = conf["path"]["straight"]

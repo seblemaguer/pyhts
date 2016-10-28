@@ -288,14 +288,26 @@ def generate_synthesis_configuration(_use_gv):
         # Windows
         f.write('WINFN = "')                                        # WINFN: Name of window coefficient files
 
+        #
+        win_dir = "%s/%s" % (os.path.relpath(conf.TMP_PATH), "win")
+        if os.path.exists(win_dir):
+            shutil.rmtree(win_dir)
+
+        if project_path is not None:
+            shutil.copytree("%s/%s" % (project_path, "win"), win_dir)
+        else:
+            os.mkdir(win_dir)
+
         for cur_stream in conf.STREAMS:
             win = ""
+
             for w in cur_stream["winfiles"]:
-                if project_path is not None:
-                    win = win + " %s/%s/%s" % (project_path, "win", os.path.basename(w))
-                else:
-                    win = win + " %s/%s" % (conf.PROJECT_DIR, w)
-            f.write(' StrVec %d%s' % (len(cur_stream["winfiles"]), win))
+                if project_path is None:
+                    shutil.copy("%s/%s" % (conf.PROJECT_DIR, w), "%s/%s" % (win_dir, w))
+
+                win = win + "%s/%s " % (win_dir, os.path.basename(w))
+
+            f.write('StrVec %d %s' % (len(cur_stream["winfiles"]), win))
         f.write('"\n')
 
         # Global variance

@@ -16,6 +16,7 @@ LICENSE
 from rendering.straightgeneration import *
 from rendering.worldgeneration import *
 from rendering.emageneration import *
+from rendering.straightemageneration import *
 
 def generateRenderer(conf, out_handle, logger, is_parallel=False, preserve=False):
     try:
