@@ -528,6 +528,7 @@ if __name__ == '__main__':
 
         # PATH
         if args.cmp_model_fname is not None:
+            project_path = None
             cmp_model_fpath = os.path.join(conf.CWD_PATH, args.cmp_model_fname)
             dur_model_fpath = os.path.join(conf.CWD_PATH, args.dur_model_fname)
             full_list_fpath = os.path.join(conf.CWD_PATH, args.full_list_fname)
