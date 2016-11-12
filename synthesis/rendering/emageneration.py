@@ -28,16 +28,18 @@ from shutil import copyfile # For copying files
 
 import numpy as np
 
+from rendering.emautils import *
 
 ###############################################################################
 # Functions
 ###############################################################################
 class EMAGeneration:
-    def __init__(self, conf, out_handle, logger, is_parallel):
+    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
         self.is_parallel = is_parallel
+        self.preserve = preserve
 
     def parameter_conversion(self, out_path, gen_labfile_base_lst):
         """
@@ -80,4 +82,4 @@ class EMAGeneration:
         self.parameter_conversion(out_path, gen_labfile_base_lst)
 
         self.logger.info("PLY rendering")
-        self.debug_part(out_path, gen_labfile_base_lst)
+        # self.debug_part(out_path, gen_labfile_base_lst)
