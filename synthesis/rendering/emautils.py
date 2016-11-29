@@ -20,6 +20,7 @@ import time
 import logging
 import subprocess
 import numpy as np
+import json
 
 from threading import Thread
 
@@ -40,18 +41,24 @@ class EMAToJSON(Thread):
     def run(self):
         for cur_stream in self.conf.STREAMS:
             if cur_stream["kind"] == "ema":
+                cur_channels = CHANNELS
+                if ("parameters" in cur_stream) and \
+                   ("channel_labels" in cur_stream["parameters"]) :
+                    cur_channels = cur_stream["parameters"]["channel_labels"]
+
                 input_data = np.fromfile("%s/%s.ema" % (self.out_path, self.base),
                                          dtype=np.float32)
-                nb_frames = int(input_data.size / (len(CHANNELS)*3))
+                print(input_data.size)
+                nb_frames = int(input_data.size / (len(cur_channels)*3))
 
-                input_data = np.reshape(input_data, (nb_frames, len(CHANNELS)*3))
+                input_data = np.reshape(input_data, (nb_frames, len(cur_channels)*3))
 
                 with open("%s/%s.json" % (self.out_path, self.base), "w") as output_file:
                     output_file.write("{\n")
                     output_file.write("\t\"channels\": {\n")
-                    for idx_c in range(0, len(CHANNELS)):
+                    for idx_c in range(0, len(cur_channels)):
                         c = idx_c*3
-                        output_file.write("\t\t\"%s\": {\n" % CHANNELS[idx_c])
+                        output_file.write("\t\t\"%s\": {\n" % cur_channels[idx_c])
                         output_file.write("\t\t\t\"position\": [\n")
 
                         # Frame values
@@ -88,6 +95,21 @@ class EMAToJSON(Thread):
                 # os.remove("%s/%s.ema" % (self.out_path, self.base))
 
 
+# class JSONToEMA(Thread):
+#     def __init__(self, conf, out_path, base, logger):
+#         Thread.__init__(self)
+#         self.logger = logger
+#         self.conf = conf
+#         self.out_path = out_path
+#         self.base = base
+
+#     def run(self):
+#         def input_file = "%s/%s_ema.json" % (self.out_path, self.base)
+#         def output_file = "%s/%s.ema" % (self.out_path, self.base)
+
+#         with open(input_file) as f:
+#             content = json.load(f)
+
 class JSONtoPLY(Thread):
     def __init__(self, conf, out_path, base, logger):
         Thread.__init__(self)
@@ -97,7 +119,7 @@ class JSONtoPLY(Thread):
         self.base = base
 
     def run(self):
-        for c in CHANNELS:
+        for c in cur_channels:
             cmd = ["ema-json-to-mesh",
                    "--input", "%s/%s.json" % (self.out_path, self.base),
                    "--channel", c,
