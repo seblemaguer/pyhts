@@ -13,14 +13,14 @@ LICENSE
 """
 
 
-from rendering.straightgeneration import *
-from rendering.worldgeneration import *
-from rendering.emageneration import *
-from rendering.straightemageneration import *
-from rendering.weightgeneration import *
+from rendering.straightrenderer import *
+from rendering.worldrenderer import *
+from rendering.emarenderer import *
+from rendering.straightemarenderer import *
+from rendering.weightrenderer import *
 
 def generateRenderer(conf, out_handle, logger, is_parallel=False, preserve=False):
     try:
-        return globals()[conf.kind.upper() + "Generation"](conf, out_handle, logger, is_parallel, preserve)
+        return globals()[conf.kind.upper() + "Renderer"](conf, out_handle, logger, is_parallel, preserve)
     except KeyError:
-        raise Exception("Synthesizer " + conf.kind.upper() + "Generation" + " unknown")
+        raise Exception("Renderer " + conf.kind.upper() + "Renderer" + " unknown")

@@ -33,7 +33,7 @@ from rendering.weightutils import *
 ###############################################################################
 # Functions
 ###############################################################################
-class WEIGHTGeneration:
+class WEIGHTRenderer:
     def __init__(self, conf, out_handle, logger, is_parallel, preserve):
         self.conf = conf
         self.logger = logger

@@ -80,7 +80,7 @@ class WORLDThread(Thread):
 ###############################################################################
 # Functions
 ###############################################################################
-class WORLDGeneration:
+class WORLDRenderer:
 
     def __init__(self, conf, out_handle, logger, is_parallel, preserve):
         self.conf = conf

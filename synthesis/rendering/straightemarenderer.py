@@ -34,7 +34,7 @@ CHANNELS =  ["T3", "T2", "T1", "ref", "jaw", "upperlip", "lowerlip"]
 ###############################################################################
 # Functions
 ###############################################################################
-class STRAIGHTEMAGeneration:
+class STRAIGHTEMARenderer:
 
     def __init__(self, conf, out_handle, logger, is_parallel, preserve):
         self.conf = conf

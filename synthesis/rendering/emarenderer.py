@@ -33,7 +33,7 @@ from rendering.emautils import *
 ###############################################################################
 # Functions
 ###############################################################################
-class EMAGeneration:
+class EMRendere:
     def __init__(self, conf, out_handle, logger, is_parallel, preserve):
         self.conf = conf
         self.logger = logger
