@@ -97,7 +97,7 @@ class DEFAULTGenerator:
         # Parameter generation
         self.logger.info("Parameter generation")
         cmd = "%s " % self.conf.HMGenS
-        if conf.imposed_duration:
+        if self.conf.imposed_duration:
             cmd += "-m "
 
         cmd += '-A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
