@@ -66,14 +66,20 @@ class Configuration(object):
             conf = json.load(cfg_f)
 
         try:
-            self.generator =  conf["settings"]["synthesis"]["generator"]
+            self.generator = conf["settings"]["synthesis"]["generator"]
         except KeyError:
-            raise Exception("An acoustic generator needs to be defined")
+            # Back compatibility
+            try:
+                self.generator = "default"
+                self.renderer = conf["settings"]["synthesis"]["kind"]
+            except KeyError:
+                raise Exception("An acoustic generator needs to be defined")
 
         try:
             self.renderer = conf["settings"]["synthesis"]["renderer"]
         except KeyError:
-            raise Exception("A renderer needs to be defined")
+            if self.renderer is None:
+                raise Exception("A renderer needs to be defined")
 
 
 
