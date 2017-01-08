@@ -149,6 +149,7 @@ def main():
     conf = Configuration(args.config_fname)
 
     # PATH
+    conf.imposed_duration = args.imposed_duration
     if args.cmp_model_fname is not None:
         conf.project_path = None
         conf.hts_file_pathes["cmp_model"] = os.path.join(conf.CWD_PATH, args.cmp_model_fname)

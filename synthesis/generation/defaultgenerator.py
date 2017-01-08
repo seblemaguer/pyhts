@@ -97,8 +97,8 @@ class DEFAULTGenerator:
         # Parameter generation
         self.logger.info("Parameter generation")
         cmd = "%s " % self.conf.HMGenS
-        # if args.imposed_duration:
-        #     cmd += "-m "
+        if conf.imposed_duration:
+            cmd += "-m "
 
         cmd += '-A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
           (self.conf.SYNTH_CONFIG, gen_labfile_list_fname,
