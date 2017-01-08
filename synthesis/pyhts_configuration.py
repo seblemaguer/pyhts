@@ -17,6 +17,10 @@ class Configuration(object):
         self.CWD_PATH = os.getcwd()
         self.TMP_PATH = os.path.join(self.CWD_PATH, 'tmp')
 
+        # Input pathes
+        self.project_path = None
+        self.hts_file_pathes = dict()
+
         # Create TMP_PATH if it doesn't exist
         try:
             os.mkdir(self.TMP_PATH)
@@ -47,6 +51,8 @@ class Configuration(object):
 
         self.HHEd = "HHEd"
         self.HMGenS = "HMGenS"
+
+        self.pg_type = 0
 
         if (config_fname is not None):
             self.parseConfig(config_fname)

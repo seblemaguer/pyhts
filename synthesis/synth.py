@@ -57,108 +57,7 @@ from shutil import copyfile # For copying files
 from pyhts_configuration import Configuration
 import numpy as np
 import rendering
-
-################################################################################
-### Model composition Threads
-################################################################################
-class CMPComposition(Thread):
-    def __init__(self, conf, _cmp_tree_path, cmp_model_fpath, full_list_fpath, out_handle):
-        Thread.__init__(self)
-        self.conf = conf
-        self._cmp_tree_path = _cmp_tree_path
-        self.cmp_model_fpath = cmp_model_fpath
-        self.full_list_fpath = full_list_fpath
-        self.out_handle = out_handle
-
-    def mk_unseen_script(self):
-        with open('%s_cmp.hed' % self.conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
-            f.write('\nTR 2\n\n')
-            # Load trees
-            f.write('// Load trees\n')
-            for cur_stream in self.conf.STREAMS:
-                f.write('LT "%s/%s.%s"\n\n' % (self._cmp_tree_path, cur_stream["kind"], self.conf.GEN["tree_ext"]))
-
-            # Make unseen
-            f.write('// Make unseen\n')
-            f.write('AU "%s"\n\n' % self.conf.LABEL_LIST_FNAME)
-
-            # Compact model
-            f.write('// Compact\n')
-            f.write('CO "%s_cmp"\n\n' % self.conf.TYPE_TIED_LIST_BASE)
-
-    def run(self):
-        self.mk_unseen_script()
-
-        logger.info("CMP unseen model building")
-        cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-              (self.conf.HHEd, self.conf.TRAIN_CONFIG, cmp_model_fpath, self.conf.TMP_CMP_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_cmp.hed', self.full_list_fpath)
-        subprocess.call(cmd.split(), stdout=self.out_handle)
-
-class DURComposition(Thread):
-    def __init__(self, conf, _dur_tree_path, dur_model_fpath, full_list_fpath, out_handle):
-        Thread.__init__(self)
-        self.conf = conf
-        self._dur_tree_path = _dur_tree_path
-        self.dur_model_fpath = dur_model_fpath
-        self.full_list_fpath = full_list_fpath
-        self.out_handle = out_handle
-
-    def mk_unseen_script(self):
-        with open('%s_dur.hed' % self.conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
-            f.write('\nTR 2\n\n')
-
-            # Load trees
-            f.write('// Load trees\n')
-            f.write('LT "%s/dur.%s"\n\n' % (self._dur_tree_path, self.conf.GEN["tree_ext"]))
-
-            # Make unseen
-            f.write('// Make unseen\n')
-            f.write('AU "%s"\n\n' % self.conf.LABEL_LIST_FNAME)
-
-            # Compact model
-            f.write('// Compact\n')
-            f.write('CO "%s_dur"\n\n' % self.conf.TYPE_TIED_LIST_BASE)
-
-    def run(self):
-        self.mk_unseen_script()
-
-        logger.info("Duration unseen model building")
-        cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-              (self.conf.HHEd, self.conf.TRAIN_CONFIG, dur_model_fpath, self.conf.TMP_DUR_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_dur.hed', self.full_list_fpath)
-        subprocess.call(cmd.split(), stdout=self.out_handle)
-
-class GVComposition(Thread):
-    def __init__(self, conf, gv_dir, out_handle):
-        Thread.__init__(self)
-        self.conf = conf
-        self.gv_dir = gv_dir
-        self.out_handle = out_handle
-
-    def mk_unseen_script(self):
-        with open(self.conf.GV_HED_UNSEEN_BASE + '.hed', 'w') as f:
-            f.write('\nTR 2\n\n')
-
-            # Load trees
-            f.write('// Load trees\n')
-            for cur_stream in self.conf.STREAMS:
-                f.write('LT "%s/%s.inf"\n\n' % (self.gv_dir, cur_stream["kind"]))
-
-            # Make unseen
-            f.write('// Make unseen\n')
-            f.write('AU "%s"\n\n' % self.conf.LABEL_LIST_FNAME)
-
-            # Compact model
-            f.write('// Compact\n')
-            f.write('CO "%s"\n\n' % self.conf.GV_TIED_LIST_TMP)
-
-    def run(self):
-        self.mk_unseen_script()
-
-        logger.info("Global variance unseen model building")
-        cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-            (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.gv_dir+'/clustered.mmf', self.conf.TMP_GV_MMF, self.conf.GV_HED_UNSEEN_BASE+'.hed',
-             self.gv_dir+'/gv.list')
-        subprocess.call(cmd.split(), stdout=self.out_handle)
+import generation
 
 ################################################################################
 ### Utils
@@ -192,7 +91,7 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
 ################################################################################
 ### Config + script functions
 ################################################################################
-def generate_label_list(input_label_list):
+def generate_label_list(conf, input_label_list):
     """
     Generate the label list file to get it through the tree
     """
@@ -213,133 +112,6 @@ def generate_label_list(input_label_list):
 
     with open(conf.LABEL_LIST_FNAME, 'w') as list_file:
         list_file.write('\n'.join(full_set))
-
-
-def generate_training_configuration():
-    """
-    Generate 'training configuration' => needed for the tree search
-    """
-    # Training configuration
-    with open(conf.TRAIN_CONFIG, 'w') as f:
-        f.write('NATURALREADORDER = T\n')
-        f.write('NATURALWRITEORDER = T\n')
-
-        # Variance floor options
-        f.write('APPLYVFLOOR = T\n')
-
-        cur_stream_idx = 0
-        tmp_vflr_val = ''
-        for cur_stream in conf.STREAMS:
-            cur_stream_idx += 1
-            tmp_vflr_val += ' '
-            if cur_stream["is_msd"]:
-                end_stream_idx = cur_stream_idx + len(cur_stream["winfiles"]) - 1
-                tmp_vflr_val += ' '.join(['%s' % cur_stream["vflr"]] * (end_stream_idx - cur_stream_idx + 1))
-                cur_stream_idx = end_stream_idx
-            else:
-                tmp_vflr_val += '%s' % cur_stream["vflr"]
-
-        f.write('VFLOORSCALESTR = "Vector %d %s"\n' % (cur_stream_idx, tmp_vflr_val))
-
-        f.write('APPLYDURVARFLOOR = T\n')
-        f.write('DURVARFLOORPERCENTILE = %f\n' % (100 * float(conf.DUR["vflr"])))
-
-        # Duration specific
-        f.write('MAXSTDDEVCOEF = %s\n' % conf.MODELLING['maxdev'])
-        f.write('MINDUR = %s\n' % conf.MODELLING['mindur'])
-
-
-def generate_synthesis_configuration(_use_gv):
-    """
-    Generate the synthesis configuration file needed by HMGenS
-    """
-    # Synthesis configuration
-
-    # config file for parameter generation
-    with open(conf.SYNTH_CONFIG, 'w') as f:
-
-        # Global parameters
-        f.write('NATURALREADORDER = T\n')
-        f.write('NATURALWRITEORDER = T\n')
-        f.write('USEALIGN = T\n')
-        f.write('MAXEMITER = %s\n' % conf.GEN['maxemiter'])
-
-        # Counting streams
-        f.write('PDFSTRSIZE = "IntVec %d' % len(conf.STREAMS))    # PdfStream structure
-        for cur_stream in conf.STREAMS:
-            if cur_stream["is_msd"]:
-                f.write(' %d' % len(cur_stream["winfiles"]))
-            else:
-                f.write(' 1')
-        f.write('"\n')
-
-        # Order of each coefficients
-        f.write('PDFSTRORDER = "IntVec %d' % len(conf.STREAMS))    # PdfStream structure
-        for cur_stream in conf.STREAMS:
-            f.write(' %d' % (cur_stream["order"]+1))
-        f.write('"\n')
-
-        # Extension
-        f.write('PDFSTREXT = "StrVec %d' % len(conf.STREAMS))
-        for cur_stream in conf.STREAMS:
-            f.write(' %s' % cur_stream["kind"])
-        f.write('"\n')
-
-        # Windows
-        f.write('WINFN = "')                                        # WINFN: Name of window coefficient files
-
-        #
-        win_dir = "%s/%s" % (os.path.relpath(conf.TMP_PATH), "win")
-        if os.path.exists(win_dir):
-            shutil.rmtree(win_dir)
-
-        if project_path is not None:
-            shutil.copytree("%s/%s" % (project_path, "win"), win_dir)
-        else:
-            os.mkdir(win_dir)
-
-        for cur_stream in conf.STREAMS:
-            win = ""
-
-            for w in cur_stream["winfiles"]:
-                if project_path is None:
-                    shutil.copy("%s/%s" % (conf.PROJECT_DIR, w), "%s/%s" % (win_dir, w))
-
-                win = win + "%s/%s " % (win_dir, os.path.basename(w))
-
-            f.write('StrVec %d %s' % (len(cur_stream["winfiles"]), win))
-        f.write('"\n')
-
-        # Global variance
-        if _use_gv:
-            f.write('EMEPSILON  = %f\n' % conf.GV['emepsilon'])
-            f.write('USEGV      = TRUE\n')
-            f.write('GVMODELMMF = %s\n' % conf.TMP_GV_MMF)
-            f.write('GVHMMLIST  = %s\n' % conf.GV_TIED_LIST_TMP)
-            f.write('MAXGVITER  = %d\n' % conf.GV['maxgviter'])
-            f.write('GVEPSILON  = %f\n' % conf.GV['gvepsilon'])
-            f.write('MINEUCNORM = %f\n' % conf.GV['mineucnorm'])
-            f.write('STEPINIT   = %f\n' % conf.GV['stepinit'])
-            f.write('STEPINC    = %f\n' % conf.GV['stepinc'])
-            f.write('STEPDEC    = %f\n' % conf.GV['stepdec'])
-            f.write('HMMWEIGHT  = %f\n' % conf.GV['hmmweight'])
-            f.write('GVWEIGHT   = %f\n' % conf.GV['gvweight'])
-            f.write('OPTKIND    = %s\n' % conf.GV['optkind'])
-
-            if conf.GV["slnt"] is not None:
-                f.write('GVOFFMODEL = "StrVec %d %s"\n' % (len(conf.GV["slnt"]), ' '.join(conf.GV["slnt"])))
-
-            if conf.GV['cdgv']:
-                f.write('CDGV = TRUE\n')
-            else:
-                f.write('CDGV = FALSE\n')
-        else:
-            f.write('USEGV      = FALSE\n')
-
-
-################################################################################
-### Main function
-################################################################################
 
 def setup_logging(is_verbose):
     """
@@ -372,7 +144,38 @@ def main():
     """
     Main entry function
     """
-    global args
+    global args, logger
+
+    conf = Configuration(args.config_fname)
+
+    # PATH
+    if args.cmp_model_fname is not None:
+        conf.project_path = None
+        conf.hts_file_pathes["cmp_model"] = os.path.join(conf.CWD_PATH, args.cmp_model_fname)
+        conf.hts_file_pathes["dur_model"] = os.path.join(conf.CWD_PATH, args.dur_model_fname)
+        conf.hts_file_pathes["full_list"] = os.path.join(conf.CWD_PATH, args.full_list_fname)
+        conf.hts_file_pathes["cmp_tree"]  = os.path.join(conf.CWD_PATH, args.cmp_tree_dir)
+        conf.hts_file_pathes["dur_tree"]  = os.path.join(conf.CWD_PATH, args.dur_tree_dir)
+
+        # GV checking
+        conf.use_gv = args.gv_dir
+        conf.hts_file_pathes["gv"] = args.gv_dir
+    else:
+        conf.project_path = os.path.dirname(args.config_fname)
+        conf.hts_file_pathes["cmp_model"] = os.path.join(conf.project_path, "models/re_clustered_cmp.mmf")
+        conf.hts_file_pathes["dur_model"] = os.path.join(conf.project_path, "models/re_clustered_dur.mmf")
+        conf.hts_file_pathes["full_list"] = os.path.join(conf.project_path, "full.list")
+        conf.hts_file_pathes["cmp_tree"]  =   os.path.join(conf.project_path, "trees")
+        conf.hts_file_pathes["dur_tree"]  =   os.path.join(conf.project_path, "trees")
+
+        conf.use_gv = False
+        if (os.path.isdir(os.path.join(conf.project_path, "gv"))):
+            conf.use_gv = True
+            conf.hts_file_pathes["gv"] = os.path.join(conf.project_path, "gv")
+
+    # Out directory
+    out_path = os.path.join(conf.CWD_PATH, args.output)
+
 
     # Create output directory if none, else pass
     try:
@@ -395,51 +198,11 @@ def main():
             gen_labfile_lst.append(line.strip())
             gen_labfile_base_lst.append(os.path.splitext(os.path.basename(line.strip()))[0])
 
-    generate_label_list(gen_labfile_lst)
+    generate_label_list(conf, gen_labfile_lst)
 
-    # 1. Generate configs
-    generate_training_configuration()
-    generate_synthesis_configuration(use_gv)
-
-
-    # 3. Compose models
-    #    * CMP
-    thread_cmp = CMPComposition(conf, cmp_tree_path, cmp_model_fpath, full_list_fpath, out_handle)
-    thread_cmp.start()
-    if not args.is_parallel:
-        thread_cmp.join()
-
-    #    * DUR
-    thread_dur = DURComposition(conf, dur_tree_path, dur_model_fpath, full_list_fpath, out_handle)
-    thread_dur.start()
-    if not args.is_parallel:
-        thread_dur.join()
-
-
-    #    * GV
-    if use_gv:
-        thread_gv = GVComposition(conf, gv_path, out_handle)
-        thread_gv.start()
-        thread_gv.join()
-
-
-    if args.is_parallel:
-       thread_cmp.join()
-       thread_dur.join()
-
-    # 4. Generate parameters
-    logger.info("Parameter generation")
-    if args.imposed_duration:
-        cmd = '%s -m -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
-              (conf.HMGenS, conf.SYNTH_CONFIG, gen_labfile_list_fname,
-               conf.MODELLING["beam"], int(args.pg_type), conf.TMP_CMP_MMF, conf.TMP_DUR_MMF,
-               out_path, conf.TYPE_TIED_LIST_BASE+'_cmp', conf.TYPE_TIED_LIST_BASE+'_dur')
-    else:
-        cmd = '%s -A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
-              (conf.HMGenS, conf.SYNTH_CONFIG, gen_labfile_list_fname,
-               conf.MODELLING["beam"], int(args.pg_type), conf.TMP_CMP_MMF, conf.TMP_DUR_MMF,
-               out_path, conf.TYPE_TIED_LIST_BASE+'_cmp', conf.TYPE_TIED_LIST_BASE+'_dur')
-    subprocess.call(cmd.split(), stdout=out_handle)
+    # Parameter generation
+    parameter_generator = generation.generateGenerator(conf, "default", out_handle, logger, args.is_parallel, args.preserve_intermediate)
+    parameter_generator.generate(out_path, gen_labfile_list_fname, conf.use_gv)
 
     # 5. Convert/adapt parameters
     if args.impose_f0_dir and args.impose_interpolated_f0_dir:
@@ -523,37 +286,6 @@ if __name__ == '__main__':
 
 
         args = argp.parse_args()
-
-        conf = Configuration(args.config_fname)
-
-        # PATH
-        if args.cmp_model_fname is not None:
-            project_path = None
-            cmp_model_fpath = os.path.join(conf.CWD_PATH, args.cmp_model_fname)
-            dur_model_fpath = os.path.join(conf.CWD_PATH, args.dur_model_fname)
-            full_list_fpath = os.path.join(conf.CWD_PATH, args.full_list_fname)
-            cmp_tree_path = os.path.join(conf.CWD_PATH, args.cmp_tree_dir)
-            dur_tree_path = os.path.join(conf.CWD_PATH, args.dur_tree_dir)
-
-            # GV checking
-            use_gv = args.gv_dir
-            gv_path = args.gv_dir
-        else:
-            project_path = os.path.dirname(args.config_fname)
-            cmp_model_fpath = os.path.join(project_path, "models/re_clustered_cmp.mmf")
-            dur_model_fpath = os.path.join(project_path, "models/re_clustered_dur.mmf")
-            full_list_fpath = os.path.join(project_path, "full.list")
-            cmp_tree_path = os.path.join(project_path, "trees")
-            dur_tree_path = os.path.join(project_path, "trees")
-
-            use_gv = False
-            if (os.path.isdir(os.path.join(project_path, "gv"))):
-                use_gv = True
-                gv_path = os.path.join(project_path, "gv")
-
-        # Out directory
-        out_path = os.path.join(conf.CWD_PATH, args.output)
-
 
         # Debug time
         logger = setup_logging(args.verbose)
