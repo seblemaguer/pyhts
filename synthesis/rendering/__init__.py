@@ -21,6 +21,6 @@ from rendering.weightrenderer import *
 
 def generateRenderer(conf, out_handle, logger, is_parallel=False, preserve=False):
     try:
-        return globals()[conf.kind.upper() + "Renderer"](conf, out_handle, logger, is_parallel, preserve)
+        return globals()[conf.renderer.upper() + "Renderer"](conf, out_handle, logger, is_parallel, preserve)
     except KeyError:
-        raise Exception("Renderer " + conf.kind.upper() + "Renderer" + " unknown")
+        raise Exception("Renderer " + conf.renderer.upper() + "Renderer" + " unknown")

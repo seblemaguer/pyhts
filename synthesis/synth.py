@@ -201,7 +201,7 @@ def main():
     generate_label_list(conf, gen_labfile_lst)
 
     # Parameter generation
-    parameter_generator = generation.generateGenerator(conf, "default", out_handle, logger, args.is_parallel, args.preserve_intermediate)
+    parameter_generator = generation.generateGenerator(conf, out_handle, logger, args.is_parallel, args.preserve_intermediate)
     parameter_generator.generate(out_path, gen_labfile_list_fname, conf.use_gv)
 
     # 5. Convert/adapt parameters

@@ -35,6 +35,9 @@ from generation.utils.configuration import *
 class DEFAULTGenerator:
 
     def __init__(self, conf, out_handle, logger, is_parallel, preserve):
+        """
+        Constructor
+        """
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
@@ -43,7 +46,9 @@ class DEFAULTGenerator:
         self.configuration_generator = ConfigurationGenerator(conf, logger)
 
     def composition(self, use_gv):
-
+        """Generate composed files (model files containing the predicted
+        node for the labels also not present in the training corpus)
+        """
         # CMP
         thread_cmp = CMPComposition(self.conf,
                                         self.conf.hts_file_pathes["cmp_tree"],

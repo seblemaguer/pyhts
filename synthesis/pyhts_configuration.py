@@ -66,9 +66,16 @@ class Configuration(object):
             conf = json.load(cfg_f)
 
         try:
-            self.kind = conf["settings"]["synthesis"]["kind"]
+            self.generator =  conf["settings"]["synthesis"]["generator"]
         except KeyError:
-            raise Exception("A kind of synthesis needs to be defined (straight, ....)")
+            raise Exception("An acoustic generator needs to be defined")
+
+        try:
+            self.renderer = conf["settings"]["synthesis"]["renderer"]
+        except KeyError:
+            raise Exception("A renderer needs to be defined")
+
+
 
         self.STREAMS = conf["models"]["cmp"]["streams"];
 
