@@ -226,17 +226,19 @@ class DNNGenerator(DEFAULTGenerator):
                 with open("%s/%s" % (win_dir, os.path.basename(win_files[1]))) as f:
                     line = f.readline().strip()
                     elts = line.split()
-                    win_delta = elts[1]
+                    win_delta = " ".join(elts[1:])
 
                 win_accel = 0
                 with open("%s/%s" % (win_dir, os.path.basename(win_files[2]))) as f:
                     line = f.readline().strip()
                     elts = line.split()
-                    win_accel = elts[1]
+                    win_accel = " ".join(elts[1:])
 
                 # Generate the parameter
-                cmd = "merge -l %d -L %d %s/%s.%s.mean < %s/%s.%s.var | " % (dim, dim, out_path, base, kind, out_path, base, kind)
-                cmd += "mlpg -m %d -d %s -d %s " % (order, win_delta, win_accel)
+                cmd = "merge -l %d -L %d %s/%s.%s.mean < %s/%s.%s.var " % \
+                  (dim, dim, out_path, base, kind, out_path, base, kind)
+                cmd += "| mlpg -m %d -d %s -d %s " % \
+                  (order, win_delta, win_accel)
                 self.logger.info("%s stream DNN in process" % kind)
 
                 # if lf0 we should apply the mask
@@ -259,7 +261,8 @@ class DNNGenerator(DEFAULTGenerator):
 
             else:
                 # Adapt the mask for v/uv mask
-                cmd = "cat %s/%s.%s.mean | sopr -s 0.5 -UNIT > %s/%s.%s" % (out_path, base, kind, out_path, base, kind)
+                cmd = "cat %s/%s.%s.mean | sopr -s 0.5 -UNIT > %s/%s.%s" % \
+                  (out_path, base, kind, out_path, base, kind)
                 print(cmd)
                 wrapped_cmd = ["bash", "-c", cmd]
                 subprocess.call(wrapped_cmd)
