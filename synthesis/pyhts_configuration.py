@@ -57,6 +57,8 @@ class Configuration(object):
         if (config_fname is not None):
             self.parseConfig(config_fname)
 
+
+
     def parseConfig(self, config_fname):
         """
         """
@@ -102,6 +104,9 @@ class Configuration(object):
         }
         self.SIGNAL = conf["signal"]
         self.FREQWARPING = FREQWARP_DIC[str(self.SIGNAL["samplerate"])]
+
+        self.nb_emitting_states = conf["models"]["global"]["nb_emitting_states"]
+        self.frameshift = conf["signal"]["frameshift"]
 
         # Global Variance
         self.GV = conf["settings"]["synthesis"]["gv"]

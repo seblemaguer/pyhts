@@ -26,9 +26,6 @@ from threading import Thread
 
 from shutil import copyfile # For copying files
 
-from rendering.parameterconversion import ParameterConversion
-from rendering.emautils import *
-
 from rendering.emarenderer import *
 from rendering.straightrenderer import *
 CHANNELS =  ["T3", "T2", "T1", "ref", "jaw", "upperlip", "lowerlip"]
@@ -45,24 +42,6 @@ class STRAIGHTEMARenderer(STRAIGHTRenderer, EMARenderer):
         self.is_parallel = is_parallel
         self.preserve = preserve
         self.MATLAB="matlab"
-
-    def debug_part(self, out_path, gen_labfile_base_lst):
-        """
-        Generate PLY debug information
-        """
-        list_threads = []
-        for base in gen_labfile_base_lst:
-            thread = JSONtoPLY(self.conf, out_path, base, self.logger)
-            thread.start()
-
-            if not self.is_parallel:
-                thread.join()
-            else:
-                list_threads.append(thread)
-
-        if self.is_parallel:
-            for thread in list_threads:
-                thread.join()
 
     def render(self, out_path, gen_labfile_base_lst):
         STRAIGHTRenderer.render(self, out_path, gen_labfile_base_lst)

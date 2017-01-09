@@ -28,8 +28,6 @@ from shutil import copyfile # For copying files
 
 import numpy as np
 
-from rendering.emautils import *
-
 ###############################################################################
 # Functions
 ###############################################################################
@@ -77,9 +75,12 @@ class EMARenderer:
             for thread in list_threads:
                 thread.join()
 
+
     def render(self, out_path, gen_labfile_base_lst):
+
         self.logger.info("EMA binary to JSON")
         self.parameter_conversion(out_path, gen_labfile_base_lst)
 
-        self.logger.info("PLY rendering")
+
+        # self.logger.info("PLY rendering")
         # self.debug_part(out_path, gen_labfile_base_lst)

@@ -13,7 +13,7 @@ LICENSE
 """
 
 from generation.defaultgenerator import *
-#from generation.dnngenerator import *
+from generation.dnngenerator import *
 
 def generateGenerator(conf, out_handle, logger, is_parallel=False, preserve=False):
     try:
