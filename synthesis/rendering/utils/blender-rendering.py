@@ -81,9 +81,8 @@ for frame in emaData:
     # increase frame number
     frameNumber += 1 # FIXME: hardcoded
 
-#    if (frameNumber % 12) != 0:
-#        print("I skip %d => %d" % (frameNumber, frameNumber % 10))
-#        continue
+    if (frameNumber % 8) != 0: # FIXME: hardcoded 200 => 25 frame per seconds
+        continue
 
     # get speaker weights
     weights.speakerWeights = numpy.array(frame["speakerWeights"])
@@ -106,4 +105,3 @@ for frame in emaData:
     bpy.data.scenes["Scene"].render.filepath = '{0}_{1:07d}.png'.format(outputBase, output_frame_number)
     bpy.ops.render.render(write_still=True)
     output_frame_number += 1
-
