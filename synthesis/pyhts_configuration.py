@@ -31,6 +31,7 @@ class Configuration(object):
         # Configs
         self.TRAIN_CONFIG = os.path.join(self.TMP_PATH, "train_%d.cfg" % os.getpid())
         self.SYNTH_CONFIG = os.path.join(self.TMP_PATH, "synth_%d.cfg" % os.getpid())
+        self.DNN_CONFIG = os.path.join(self.TMP_PATH, "dnn_%d.cfg" % os.getpid())
 
         # Lists
         self.GV_TIED_LIST_TMP = os.path.join(self.TMP_PATH, "tiedlist_%d_gv" % os.getpid())
@@ -53,9 +54,9 @@ class Configuration(object):
         self.HMGenS = "HMGenS"
 
         self.pg_type = 0
-
+        self.conf = None
         if (config_fname is not None):
-            self.parseConfig(config_fname)
+            self.conf = self.parseConfig(config_fname)
 
 
 
@@ -119,3 +120,5 @@ class Configuration(object):
 
         if ("path" in conf) and ("straight" in conf["path"]):
             self.STRAIGHT_PATH = conf["path"]["straight"]
+
+        return conf
