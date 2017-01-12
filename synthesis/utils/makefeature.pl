@@ -328,9 +328,9 @@ for ( my $i = 0 ; $i < @label_start ; $i++ ) {
            do_match_and_get_digit( $label_str[$i], $patt );
          if ( $match == 1 ) {
             my ( $norm_result, $norm_value ) = norm( $value, $min, $max );
-            if ( $norm_result != 1 ) {
-               print STDERR "WARNING: Out of range $value : $name MIN=$min MAX=$max\n";
-            }
+            # if ( $norm_result != 1 ) {
+            #    print STDERR "WARNING: Out of range $value : $name MIN=$min MAX=$max\n";
+            # }
             if ( $norm_value < 0.0 || 1.0 < $norm_value ) {
                die "ERROR: Normalization error $value : $name MIN=$min MAX=$max\n";
             }
@@ -413,9 +413,9 @@ for ( my $i = 0 ; $i < @label_start ; $i++ ) {
                die "ERROR: Unknown reserved feature name\n";
             }
             my ( $norm_result, $norm_value ) = norm( $value, $min, $max );
-            if ( $norm_result != 1 ) {
-               print STDERR "WARNING: Out of range $value : $name MIN=$min MAX=$max\n";
-            }
+            # if ( $norm_result != 1 ) {
+            #    print STDERR "WARNING: Out of range $value : $name MIN=$min MAX=$max\n";
+            # }
             if ( $norm_value < 0.0 || 1.0 < $norm_value ) {
                die "ERROR: Normalization error $value : $name MIN=$min MAX=$max\n";
             }

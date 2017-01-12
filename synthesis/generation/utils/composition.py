@@ -24,8 +24,6 @@ import shutil
 from threading import Thread
 from shutil import copyfile # For copying files
 
-from threading import Thread
-
 
 ################################################################################
 ### Model composition Threads
