@@ -1,8 +1,40 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 
-"""
-SYNOPSIS
+"""pyhts
+Usage: synth.py [-h] [-v] [-c FILE] [-l] [-p PG_TYPE]
+                [-s] [-P] [-R] [-D] [-F IMPOSE_F0_DIR]
+                [-I IMPOSE_INTERPOLATED_F0_DIR] [-M IMPOSE_MGC_DIR]
+                [-B IMPOSE_BAP_DIR] -i FILE -o FILE
+
+Options:
+  -h, --help            show this help message and exit
+  -v, --verbose         verbose output
+  -c FILE, --config FILE
+                        Configuration file
+  -l , --input_is_list  Label list training lab files
+  -p PG_TYPE, --pg_type PG_TYPE
+                        Parameter generation type
+  -s, --with_scp        the input is a scp formatted file
+  -P, --parallel        Activate parallel mode
+  -R, --preserve        do not delete the intermediate and temporary files
+  -D, --imposed_duration
+                        imposing the duration at a phone level
+  -F IMPOSE_F0_DIR, --imposed_f0_dir IMPOSE_F0_DIR
+                        F0 directory to use at the synthesis level
+  -I IMPOSE_INTERPOLATED_F0_DIR, --imposed_interpolated_f0_dir IMPOSE_INTERPOLATED_F0_DIR
+                        Interpolated F0 directory to use at the synthesis
+                        level (unvoiced property is predicted by the F0 from
+                        HTS directly)
+  -M IMPOSE_MGC_DIR, --imposed_mgc_dir IMPOSE_MGC_DIR
+                        MGC directory to use at the synthesis level
+  -B IMPOSE_BAP_DIR, --imposed_bap_dir IMPOSE_BAP_DIR
+                        BAP directory to use at the synthesis level
+  -i FILE, --input FILE
+                        Input lab file for synthesis
+  -o FILE, --output FILE
+                        Output wav directory
+
 
     synth [-h,--help] [-v,--verbose] [--version]
 
@@ -11,18 +43,6 @@ DESCRIPTION
     **TODO** This describes how to use this script. This docstring
         will be printed by the script if there is an error or
         if the user requests help (-h or --help).
-
-EXAMPLES
-
-    %run /Volumes/Python/pyhts/synthesis/synth.py
-            -m models/cmp/re_clustered.mmf
-            -d models/dur/re_clustered.mmf
-            -t trees/cmp
-            -u trees/dur
-            -i data/limsi_fr_tat_0001.lab
-            -o OUT_WAV
-            -l data/lists/full.list
-            -p 0
 
 EXIT STATUS
 
@@ -41,6 +61,8 @@ VERSION
 
     $Id$
 """
+from docopt import docopt
+
 import os
 import sys
 import traceback
@@ -146,37 +168,24 @@ def main():
     """
     global args, logger
 
-    conf = Configuration(args.config_fname)
+    conf = Configuration(args["--config"])
 
     # PATH
-    conf.imposed_duration = args.imposed_duration
-    if args.cmp_model_fname is not None:
-        conf.project_path = None
-        conf.hts_file_pathes["cmp_model"] = os.path.join(conf.CWD_PATH, args.cmp_model_fname)
-        conf.hts_file_pathes["dur_model"] = os.path.join(conf.CWD_PATH, args.dur_model_fname)
-        conf.hts_file_pathes["full_list"] = os.path.join(conf.CWD_PATH, args.full_list_fname)
-        conf.hts_file_pathes["cmp_tree"]  = os.path.join(conf.CWD_PATH, args.cmp_tree_dir)
-        conf.hts_file_pathes["dur_tree"]  = os.path.join(conf.CWD_PATH, args.dur_tree_dir)
+    conf.imposed_duration = args["--imposed_duration"]
+    conf.project_path = os.path.dirname(args["--config"])
+    conf.hts_file_pathes["cmp_model"] = os.path.join(conf.project_path, "models/re_clustered_cmp.mmf")
+    conf.hts_file_pathes["dur_model"] = os.path.join(conf.project_path, "models/re_clustered_dur.mmf")
+    conf.hts_file_pathes["full_list"] = os.path.join(conf.project_path, "full.list")
+    conf.hts_file_pathes["cmp_tree"]  =   os.path.join(conf.project_path, "trees")
+    conf.hts_file_pathes["dur_tree"]  =   os.path.join(conf.project_path, "trees")
 
-        # GV checking
-        conf.use_gv = args.gv_dir
-        conf.hts_file_pathes["gv"] = args.gv_dir
-    else:
-        conf.project_path = os.path.dirname(args.config_fname)
-        conf.hts_file_pathes["cmp_model"] = os.path.join(conf.project_path, "models/re_clustered_cmp.mmf")
-        conf.hts_file_pathes["dur_model"] = os.path.join(conf.project_path, "models/re_clustered_dur.mmf")
-        conf.hts_file_pathes["full_list"] = os.path.join(conf.project_path, "full.list")
-        conf.hts_file_pathes["cmp_tree"]  =   os.path.join(conf.project_path, "trees")
-        conf.hts_file_pathes["dur_tree"]  =   os.path.join(conf.project_path, "trees")
-
-        conf.use_gv = False
-        if (os.path.isdir(os.path.join(conf.project_path, "gv"))):
-            conf.use_gv = True
-            conf.hts_file_pathes["gv"] = os.path.join(conf.project_path, "gv")
+    conf.use_gv = False
+    if (os.path.isdir(os.path.join(conf.project_path, "gv"))):
+        conf.use_gv = True
+        conf.hts_file_pathes["gv"] = os.path.join(conf.project_path, "gv")
 
     # Out directory
-    out_path = os.path.join(conf.CWD_PATH, args.output)
-
+    out_path = os.path.join(conf.CWD_PATH, args["--output"])
 
     # Create output directory if none, else pass
     try:
@@ -186,11 +195,11 @@ def main():
 
     # 0. Generate list file
     gen_labfile_list_fname = conf.TMP_GEN_LABFILE_LIST_FNAME
-    if args.input_is_list:
-        gen_labfile_list_fname = args.input_fname
+    if args["--input_is_list"]:
+        gen_labfile_list_fname = args["--input"]
     else:
         with open(gen_labfile_list_fname, 'w') as f:
-            f.write(args.input_fname + '\n')
+            f.write(args["--input"] + '\n')
 
     gen_labfile_base_lst = []
     gen_labfile_lst = []
@@ -202,30 +211,32 @@ def main():
     generate_label_list(conf, gen_labfile_lst)
 
     # Parameter generation
-    parameter_generator = generation.generateGenerator(conf, out_handle, logger, args.is_parallel, args.preserve_intermediate)
+    parameter_generator = generation.generateGenerator(conf, out_handle, logger,
+                                                       args["--parallel"], args["--preserve"])
     parameter_generator.generate(out_path, gen_labfile_list_fname, conf.use_gv)
 
     # 5. Convert/adapt parameters
-    if args.impose_f0_dir and args.impose_interpolated_f0_dir:
+    if args["--impose_f0_dir"] and args["--impose_interpolated_f0_dir"]:
         raise Exception("cannot impose 2 kind of F0 at the same time")
 
-    if args.impose_f0_dir:
+    if args["--impose_f0_dir"]:
         logger.info("replace f0 using imposed one")
-        copy_imposed_files(args.impose_f0_dir, out_path, gen_labfile_base_lst, "lf0")
-    if args.impose_interpolated_f0_dir:
+        copy_imposed_files(args["--impose_f0_dir"], out_path, gen_labfile_base_lst, "lf0")
+    if args["--impose_interpolated_f0_dir"]:
         logger.info("replace f0 using interpolated one")
-        adapt_f0_files(args.impose_interpolated_f0_dir, out_path, gen_labfile_base_lst, "lf0")
-    if args.impose_mgc_dir:
-        copy_imposed_file(args.impose_mgc_dir, out_path, gen_labfile_base_lst, "mgc")
-    if args.impose_bap_dir:
-        copy_imposed_file(args.impose_bap_dir, out_path, gen_labfile_base_lst, "bap")
+        adapt_f0_files(args["--impose_interpolated_f0_dir"], out_path, gen_labfile_base_lst, "lf0")
+    if args["--impose_bap_dir"]:
+        copy_imposed_file(args["--impose_mgc_dir"], out_path, gen_labfile_base_lst, "mgc")
+    if args["--impose_bap_dir"]:
+        copy_imposed_file(args["--impose_bap_dir"], out_path, gen_labfile_base_lst, "bap")
 
     # 6. Call straight to synthesize
-    renderer = rendering.generateRenderer(conf, out_handle, logger, args.is_parallel, args.preserve_intermediate)
+    renderer = rendering.generateRenderer(conf, out_handle, logger,
+                                          args["--parallel"], args["--preserve"])
     renderer.render(out_path, gen_labfile_base_lst)
 
 
-    if not args.preserve_intermediate:
+    if not args["--preserve"]:
         shutil.rmtree(conf.TMP_PATH)
 
 ################################################################################
@@ -234,79 +245,27 @@ def main():
 
 if __name__ == '__main__':
     try:
-        argp = ap.ArgumentParser(description=globals()['__doc__'], formatter_class=ap.RawDescriptionHelpFormatter)
-
-        argp.add_argument('-v', '--verbose', action='store_true',
-                          default=False, help='verbose output')
-
-        # Configuration
-        argp.add_argument('-c', '--config', dest='config_fname',
-                          help="Configuration file", metavar='FILE')
-
-        # models
-        argp.add_argument('-m', '--cmp', dest='cmp_model_fname',
-                          help="CMP model file", metavar='FILE')
-        argp.add_argument('-d', '--dur', dest='dur_model_fname',
-                          help="Duration model file", metavar='FILE')
-        argp.add_argument('-l', '--list', dest='full_list_fname',
-                          help="Label list training lab files", metavar='FILE')
-        argp.add_argument('-t', '--cmp_tree', dest='cmp_tree_dir',
-                          help="Directory which contains the coefficient trees")
-        argp.add_argument('-u', '--dur_tree', dest='dur_tree_dir',
-                          help="Directory which contains the duration tree")
-        argp.add_argument('-g', '--gv', dest='gv_dir',
-                          help="Define the global variance model directory")
-
-        # Options
-        argp.add_argument('-p', '--pg_type', dest='pg_type', default=0,
-                          help="Parameter generation type")
-        argp.add_argument('-s', '--with_scp', dest='input_is_list', action='store_true',
-                          default=False, help="the input is a scp formatted file")
-        argp.add_argument('-P', '--parallel', dest="is_parallel", action="store_true",
-                          default=False, help="Activate parallel mode")
-        argp.add_argument('-R', '--preserve', dest="preserve_intermediate", action="store_true",
-                          default=False, help="do not delete the intermediate and temporary files")
-
-        # Imposing
-        argp.add_argument("-D", "--imposed_duration", dest="imposed_duration", action="store_true",
-                          default=False, help="imposing the duration at a phone level")
-        argp.add_argument("-F", "--imposed_f0_dir", dest="impose_f0_dir",
-                          help="F0 directory to use at the synthesis level")
-        argp.add_argument("-I", "--imposed_interpolated_f0_dir", dest="impose_interpolated_f0_dir",
-                          help="Interpolated F0 directory to use at the synthesis level (unvoiced property is predicted by the F0 from HTS directly)")
-        argp.add_argument("-M", "--imposed_mgc_dir", dest="impose_mgc_dir",
-                          help="MGC directory to use at the synthesis level")
-        argp.add_argument("-B", "--imposed_bap_dir", dest="impose_bap_dir",
-                          help="BAP directory to use at the synthesis level")
-
-        # input/output
-        argp.add_argument('-i', '--input', dest='input_fname', required=True,
-                          help="Input lab file for synthesis", metavar='FILE')
-        argp.add_argument('-o', '--output', dest='output', required=True,
-                          help="Output wav directory", metavar='FILE')
-
-
-        args = argp.parse_args()
-
+        args = docopt(__doc__, version='pyhts 0.5')
+        print(args)
         # Debug time
-        logger = setup_logging(args.verbose)
-        if args.verbose:
+        logger = setup_logging(args["--verbose"])
+        if args["--verbose"]:
             out_handle = sys.stdout
         else:
             out_handle = subprocess.DEVNULL
 
         # Debug time
         start_time = time.time()
-        if args.verbose:
+        if args["--verbose"]:
             logger.debug(time.asctime())
 
         # Running main function <=> run application
         main()
 
         # Debug time
-        if args.verbose:
+        if args["--verbose"]:
             logger.debug(time.asctime())
-        if args.verbose:
+        if args["--verbose"]:
             logger.debug("TOTAL TIME IN MINUTES: %f" % ((time.time() - start_time) / 60.0))
 
         # Exit program
