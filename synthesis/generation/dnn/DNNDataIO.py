@@ -254,7 +254,7 @@ def write_data(filename, data, append=False):
                 f.write(struct.pack('f', elem))
 
 
-def load_config(config_file, verbose=True):
+def load_config(config_file):
     config_parser = SafeConfigParser()
     config_parser.read(config_file)
 
@@ -277,13 +277,6 @@ def load_config(config_file, verbose=True):
             if float_pattern.search(config[option]):
                 config[option] = float(config[option])
                 continue
-
-    if verbose:
-        print('Configuration Parameters[%d]' % len(config))
-        print('              %-25s %20s' % ('Parameter', 'Value'))
-        for key in sorted(config.keys()):
-            print('              %-25s %20s' % (key, str(config[key])))
-        print()
 
     config['num_io_units'] = [
         config['num_input_units'],
