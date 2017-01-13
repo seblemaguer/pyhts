@@ -12,6 +12,7 @@ LICENSE
     Created:  7 January 2017
 """
 
+from generation.nonegenerator import *
 from generation.defaultgenerator import *
 from generation.dnngenerator import *
 
