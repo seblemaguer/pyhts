@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 
-"""Usage: synth.py [-h] [-v] [--config=CONFIG] [--input_is_list] [--pg_type=PG_TYPE]
+"""Usage: synth.py [-h] [-v] (--config=CONFIG) [--input_is_list] [--pg_type=PG_TYPE]
                    [--nb_proc=NB_PROC] [--preserve] [--imposed_duration]
+                   [--renderer RENDERER] [--generator GENERATOR]
                    [--impose_f0_dir=F0] [--impose_mgc_dir=MGC] [--impose_bap_dir=BAP]
                    [--impose_interpolated_f0_dir=INT_F0]
                    <input> <output>
@@ -18,8 +19,10 @@ Options:
   -s --input_is_list                              the input is a scp formatted file.
   -p PG_TYPE --pg_type=PG_TYPE                    parameter generation type [default: 0].
   -P NB_PROC --nb_proc=NB_PROC                    Activate parallel mode [default: 1].
-  -R --preserve                                   not delete the intermediate and temporary files.
+  -r --preserve                                   not delete the intermediate and temporary files.
   -D --imposed_duration                           imposing the duration at a phone level.
+  -R RENDERER --renderer=RENDERER                 override the renderer
+  -G GENERATOR --generator=GENERATOR              override the generator
   -M MGC --impose_mgc_dir=MGC                     MGC directory to use at the synthesis level.
   -B BAP --impose_bap_dir=BAP                     BAP directory to use at the synthesis level.
   -F F0 --impose_f0_dir=F0                        F0 directory to use at the synthesis level.
@@ -155,21 +158,8 @@ def main():
     """
     global args, logger
 
-    conf = Configuration(args["--config"])
+    conf = Configuration(args)
 
-    # PATH
-    conf.imposed_duration = args["--imposed_duration"]
-    conf.project_path = os.path.dirname(args["--config"])
-    conf.hts_file_pathes["cmp_model"] = os.path.join(conf.project_path, "models/re_clustered_cmp.mmf")
-    conf.hts_file_pathes["dur_model"] = os.path.join(conf.project_path, "models/re_clustered_dur.mmf")
-    conf.hts_file_pathes["full_list"] = os.path.join(conf.project_path, "full.list")
-    conf.hts_file_pathes["cmp_tree"]  =   os.path.join(conf.project_path, "trees")
-    conf.hts_file_pathes["dur_tree"]  =   os.path.join(conf.project_path, "trees")
-    conf.pg_type = int(args["--pg_type"])
-    conf.use_gv = False
-    if (os.path.isdir(os.path.join(conf.project_path, "gv"))):
-        conf.use_gv = True
-        conf.hts_file_pathes["gv"] = os.path.join(conf.project_path, "gv")
 
     # Out directory
     out_path = os.path.join(conf.CWD_PATH, args["<output>"])

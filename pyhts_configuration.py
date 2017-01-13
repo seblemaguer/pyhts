@@ -9,17 +9,41 @@ class Configuration(object):
     """
     Configuration file to synthesize speech using python version of HTS
     """
-    def __init__(self, config_fname):
+    def __init__(self, args):
         """
         """
+
+        # Check some command imposed information
+        self.generator = args["--generator"]
+        self.renderer = args["--renderer"]
+
+        # Start of everything:  the project path and the config
+        self.project_path = os.path.dirname(args["--config"])
+        self.conf = self.parseConfig(args["--config"])
+
+        # HTS options
+        self.pg_type = int(args["--pg_type"])
+        self.imposed_duration = args["--imposed_duration"]
+        self.use_gv = False
+        if (os.path.isdir(os.path.join(self.project_path, "gv"))):
+            self.use_gv = True
+
+        # HTS pathes
+        self.hts_file_pathes = dict()
+        self.hts_file_pathes["cmp_model"] = os.path.join(self.project_path, "models/re_clustered_cmp.mmf")
+        self.hts_file_pathes["dur_model"] = os.path.join(self.project_path, "models/re_clustered_dur.mmf")
+        self.hts_file_pathes["full_list"] = os.path.join(self.project_path, "full.list")
+        self.hts_file_pathes["cmp_tree"]  = os.path.join(self.project_path, "trees")
+        self.hts_file_pathes["dur_tree"]  = os.path.join(self.project_path, "trees")
+
+        if self.use_gv:
+            self.hts_file_pathes["gv"] = os.path.join(self.project_path, "gv")
+
+
         # Pathes
         self.THIS_PATH = os.path.dirname(os.path.realpath(__file__))
         self.CWD_PATH = os.getcwd()
         self.TMP_PATH = os.path.join(self.CWD_PATH, 'tmp')
-
-        # Input pathes
-        self.project_path = None
-        self.hts_file_pathes = dict()
 
         # Create TMP_PATH if it doesn't exist
         try:
@@ -53,11 +77,6 @@ class Configuration(object):
         self.HHEd = "HHEd"
         self.HMGenS = "HMGenS"
 
-        self.pg_type = 0
-        self.conf = None
-        if (config_fname is not None):
-            self.conf = self.parseConfig(config_fname)
-
 
 
     def parseConfig(self, config_fname):
@@ -68,21 +87,23 @@ class Configuration(object):
         with open(config_fname) as cfg_f:
             conf = json.load(cfg_f)
 
-        try:
-            self.generator = conf["settings"]["synthesis"]["generator"]
-        except KeyError:
-            # Back compatibility
+        if self.generator is None:
             try:
-                self.generator = "default"
-                self.renderer = conf["settings"]["synthesis"]["kind"]
+                self.generator = conf["settings"]["synthesis"]["generator"]
             except KeyError:
-                raise Exception("An acoustic generator needs to be defined")
+                # Back compatibility
+                try:
+                    self.generator = "default"
+                    self.renderer = conf["settings"]["synthesis"]["kind"]
+                except KeyError:
+                    raise Exception("An acoustic generator needs to be defined")
 
-        try:
-            self.renderer = conf["settings"]["synthesis"]["renderer"]
-        except KeyError:
-            if self.renderer is None:
-                raise Exception("A renderer needs to be defined")
+        if self.renderer is None:
+            try:
+                self.renderer = conf["settings"]["synthesis"]["renderer"]
+            except KeyError:
+                if self.renderer is None:
+                    raise Exception("A renderer needs to be defined")
 
 
 
