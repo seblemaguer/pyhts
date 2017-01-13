@@ -62,7 +62,7 @@ class DNNGenerator(DEFAULTGenerator):
         conf += "\n"
         conf += "[Others]\n"
         conf += "num_threads: 0\n"
-        conf += "restore_ckpt: 180000\n"
+        # conf += "restore_ckpt: 0\n"
 
         with open(self.conf.DNN_CONFIG, "w") as f:
             f.write(conf)
@@ -123,8 +123,9 @@ class DNNGenerator(DEFAULTGenerator):
         # load the config file
         self.generateConfigFile()
         config = DNNDataIO.load_config(self.conf.DNN_CONFIG)
-        model = '-'.join(['%s/DNN/models/model.ckpt' % self.conf.project_path,
-                          str(config['restore_ckpt'])])
+        model = '%s/DNN/models/model.ckpt' % self.conf.project_path
+        if ("restore_ckpt" in config) and (config['restore_ckpt'] > 0):
+            model += "-%s" % str(config['restore_ckpt'])
 
         # See for the variance (FIXME: optional ?)
         stddev = numpy.ones(
