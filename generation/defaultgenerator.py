@@ -34,14 +34,14 @@ from generation.utils.configuration import *
 ###############################################################################
 class DEFAULTGenerator:
 
-    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
+    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
         """
         Constructor
         """
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
-        self.is_parallel = is_parallel
+        self.nb_proc = nb_proc
         self.preserve = preserve
         self.configuration_generator = ConfigurationGenerator(conf, logger)
 
@@ -56,7 +56,7 @@ class DEFAULTGenerator:
                                         self.conf.hts_file_pathes["full_list"],
                                         self.logger, self.out_handle)
         thread_cmp.start()
-        if not self.is_parallel:
+        if self.nb_proc == 1:
             thread_cmp.join()
 
         # DUR
@@ -66,7 +66,7 @@ class DEFAULTGenerator:
                                         self.conf.hts_file_pathes["full_list"],
                                         self.logger, self.out_handle)
         thread_dur.start()
-        if not self.is_parallel:
+        if self.nb_proc == 1:
             thread_dur.join()
 
 
@@ -79,7 +79,7 @@ class DEFAULTGenerator:
             thread_gv.join()
 
 
-        if self.is_parallel:
+        if self.nb_proc != 1:
             thread_cmp.join()
             thread_dur.join()
 

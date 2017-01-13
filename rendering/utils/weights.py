@@ -27,36 +27,63 @@ from shutil import copyfile # For copying files
 
 
 class WeightsToJSON(Thread):
-    def __init__(self, conf, out_path, base, logger):
+    def __init__(self, conf, out_path, base, logger, queue):
         Thread.__init__(self)
         self.logger = logger
         self.conf = conf
         self.out_path = out_path
-        self.base = base
+        self.queue = queue
 
     def run(self):
-        for cur_stream in self.conf.STREAMS:
-            if cur_stream["kind"] == "weight":
-                speakerWeights = cur_stream["parameters"]["speakerWeights"]
+        while True:
+            base = self.queue.get()
 
-                dim = cur_stream["order"]+1
-                input_data = np.fromfile("%s/%s.weight" % (self.out_path, self.base),
-                                         dtype=np.float32)
-                nb_frames = int(input_data.size / dim)
+            if base is None:
+                break
 
-                input_data = np.reshape(input_data, (nb_frames,dim))
+            for cur_stream in self.conf.STREAMS:
+                if cur_stream["kind"] == "weight":
+                    speakerWeights = cur_stream["parameters"]["speakerWeights"]
 
-                with open("%s/%s_weight.json" % (self.out_path, self.base), "w") as output_file:
-                    output_file.write("[\n")
+                    dim = cur_stream["order"]+1
+                    input_data = np.fromfile("%s/%s.weight" % (self.out_path, self.base),
+                                             dtype=np.float32)
+                    nb_frames = int(input_data.size / dim)
 
-                    for f in range(0, nb_frames-1):
+                    input_data = np.reshape(input_data, (nb_frames,dim))
+
+                    with open("%s/%s_weight.json" % (self.out_path, self.base), "w") as output_file:
+                        output_file.write("[\n")
+
+                        for f in range(0, nb_frames-1):
+                            output_file.write("\t{\n")
+
+                            # Dump phoneme weights
+                            output_file.write("\t\t\"phonemeWeights\": [\n")
+                            for d in range(0, dim-1):
+                                output_file.write("\t\t\t%f,\n" % input_data[f, d])
+                            output_file.write("\t\t\t%f\n" % input_data[f, dim-1])
+                            output_file.write("\t\t],\n")
+
+                            # Dump speaker weights
+                            output_file.write("\t\t\"speakerWeights\": [\n")
+                            for d in range(0, len(speakerWeights)-1):
+                                output_file.write("\t\t\t%f,\n" % speakerWeights[d])
+                            output_file.write("\t\t\t%f\n" % speakerWeights[len(speakerWeights)-1])
+                            output_file.write("\t\t],\n")
+
+                            # Dump timestamp
+                            output_file.write("\t\t\"timeStamp\" :%f\n" % (f*0.005)) # FIXME: hardcoded frameshift
+                            output_file.write("\t},\n")
+
+
                         output_file.write("\t{\n")
 
                         # Dump phoneme weights
-                        output_file.write("\t\t\"phonemeWeights\": [\n")
+                        output_file.write("\t\t\"phonemeWeights\": [")
                         for d in range(0, dim-1):
-                            output_file.write("\t\t\t%f,\n" % input_data[f, d])
-                        output_file.write("\t\t\t%f\n" % input_data[f, dim-1])
+                            output_file.write("\t\t\t%f,\n" % input_data[(nb_frames-1), d])
+                        output_file.write("\t\t\t%f\n" % input_data[(nb_frames-1), dim-1])
                         output_file.write("\t\t],\n")
 
                         # Dump speaker weights
@@ -67,56 +94,44 @@ class WeightsToJSON(Thread):
                         output_file.write("\t\t],\n")
 
                         # Dump timestamp
-                        output_file.write("\t\t\"timeStamp\" :%f\n" % (f*0.005)) # FIXME: hardcoded frameshift
-                        output_file.write("\t},\n")
+                        output_file.write("\t\t\"timeStamp\" :%f\n" % ((nb_frames-1)*0.005)) # FIXME: hardcoded frameshift
+                        output_file.write("\t}\n")
 
+                        output_file.write("]\n")
 
-                    output_file.write("\t{\n")
-
-                    # Dump phoneme weights
-                    output_file.write("\t\t\"phonemeWeights\": [")
-                    for d in range(0, dim-1):
-                        output_file.write("\t\t\t%f,\n" % input_data[(nb_frames-1), d])
-                    output_file.write("\t\t\t%f\n" % input_data[(nb_frames-1), dim-1])
-                    output_file.write("\t\t],\n")
-
-                    # Dump speaker weights
-                    output_file.write("\t\t\"speakerWeights\": [\n")
-                    for d in range(0, len(speakerWeights)-1):
-                        output_file.write("\t\t\t%f,\n" % speakerWeights[d])
-                    output_file.write("\t\t\t%f\n" % speakerWeights[len(speakerWeights)-1])
-                    output_file.write("\t\t],\n")
-
-                    # Dump timestamp
-                    output_file.write("\t\t\"timeStamp\" :%f\n" % ((nb_frames-1)*0.005)) # FIXME: hardcoded frameshift
-                    output_file.write("\t}\n")
-
-                    output_file.write("]\n")
-
+            self.queue.task_done()
 
 
 class WeightsToEMA(Thread):
-    def __init__(self, conf, out_path, base, logger):
+    def __init__(self, conf, out_path, base, logger, queue):
         Thread.__init__(self)
         self.logger = logger
         self.conf = conf
         self.out_path = out_path
-        self.base = base
+        self.queue = queue
 
     def run(self):
 
-        for cur_stream in self.conf.STREAMS:
-            if cur_stream["kind"] == "weight":
-                param =  cur_stream["parameters"]
-                cmd = [
-                    "weights-to-ema-json",
-                    "--input", "%s/%s_weight.json" % (self.out_path, self.base),
-                    "--model", param["tongue_model"],
-                    "--output", "%s/%s_ema.json" % (self.out_path, self.base),
-                    "--reference", param["ref"]
-                ]
+        while True:
+            base = self.queue.get()
 
-                cmd += ["--sourceIds"] + [str(i) for i in param["sourceIds"]]
-                cmd += ["--channels"] + param["channels"]
+            if base is None:
+                break
 
-                subprocess.call(cmd)
+            for cur_stream in self.conf.STREAMS:
+                if cur_stream["kind"] == "weight":
+                    param =  cur_stream["parameters"]
+                    cmd = [
+                        "weights-to-ema-json",
+                        "--input", "%s/%s_weight.json" % (self.out_path, self.base),
+                        "--model", param["tongue_model"],
+                        "--output", "%s/%s_ema.json" % (self.out_path, self.base),
+                        "--reference", param["ref"]
+                    ]
+
+                    cmd += ["--sourceIds"] + [str(i) for i in param["sourceIds"]]
+                    cmd += ["--channels"] + param["channels"]
+
+                    subprocess.call(cmd)
+
+            self.queue.task_done()

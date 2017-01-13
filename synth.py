@@ -1,42 +1,29 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 
-"""pyhts
-Usage: synth.py [-h] [-v] [-c FILE] [-l] [-p PG_TYPE]
-                [-s] [-P] [-R] [-D] [-F IMPOSE_F0_DIR]
-                [-I IMPOSE_INTERPOLATED_F0_DIR] [-M IMPOSE_MGC_DIR]
-                [-B IMPOSE_BAP_DIR] -i FILE -o FILE
+"""Usage: synth.py [-h] [-v] [--config=CONFIG] [--input_is_list] [--pg_type=PG_TYPE]
+                   [--nb_proc=NB_PROC] [--preserve] [--imposed_duration]
+                   [--impose_f0_dir=F0] [--impose_mgc_dir=MGC] [--impose_bap_dir=BAP]
+                   [--impose_interpolated_f0_dir=INT_F0]
+                   <input> <output>
+
+Arguments:
+  input                                           the input file (label by default but can be a list of files)
+  output                                          the output directory
 
 Options:
-  -h, --help            show this help message and exit
-  -v, --verbose         verbose output
-  -c FILE, --config FILE
-                        Configuration file
-  -l , --input_is_list  Label list training lab files
-  -p PG_TYPE, --pg_type PG_TYPE
-                        Parameter generation type
-  -s, --with_scp        the input is a scp formatted file
-  -P, --parallel        Activate parallel mode
-  -R, --preserve        do not delete the intermediate and temporary files
-  -D, --imposed_duration
-                        imposing the duration at a phone level
-  -F IMPOSE_F0_DIR, --imposed_f0_dir IMPOSE_F0_DIR
-                        F0 directory to use at the synthesis level
-  -I IMPOSE_INTERPOLATED_F0_DIR, --imposed_interpolated_f0_dir IMPOSE_INTERPOLATED_F0_DIR
-                        Interpolated F0 directory to use at the synthesis
-                        level (unvoiced property is predicted by the F0 from
-                        HTS directly)
-  -M IMPOSE_MGC_DIR, --imposed_mgc_dir IMPOSE_MGC_DIR
-                        MGC directory to use at the synthesis level
-  -B IMPOSE_BAP_DIR, --imposed_bap_dir IMPOSE_BAP_DIR
-                        BAP directory to use at the synthesis level
-  -i FILE, --input FILE
-                        Input lab file for synthesis
-  -o FILE, --output FILE
-                        Output wav directory
-
-
-    synth [-h,--help] [-v,--verbose] [--version]
+  -h --help                                       Show this help message and exit.
+  -v --verbose                                    Verbose output.
+  -c CONFIG --config=CONFIG                       Configuration file.
+  -s --input_is_list                              the input is a scp formatted file.
+  -p PG_TYPE --pg_type=PG_TYPE                    parameter generation type [default: 0].
+  -P NB_PROC --nb_proc=NB_PROC                    Activate parallel mode [default: 1].
+  -R --preserve                                   not delete the intermediate and temporary files.
+  -D --imposed_duration                           imposing the duration at a phone level.
+  -M MGC --impose_mgc_dir=MGC                     MGC directory to use at the synthesis level.
+  -B BAP --impose_bap_dir=BAP                     BAP directory to use at the synthesis level.
+  -F F0 --impose_f0_dir=F0                        F0 directory to use at the synthesis level.
+  -I INT_F0 --impose_interpolated_f0_dir=INT_F0   interpolated F0 directory to use at the synthesis level.
 
 DESCRIPTION
 
@@ -178,14 +165,14 @@ def main():
     conf.hts_file_pathes["full_list"] = os.path.join(conf.project_path, "full.list")
     conf.hts_file_pathes["cmp_tree"]  =   os.path.join(conf.project_path, "trees")
     conf.hts_file_pathes["dur_tree"]  =   os.path.join(conf.project_path, "trees")
-
+    conf.pg_type = int(args["--pg_type"])
     conf.use_gv = False
     if (os.path.isdir(os.path.join(conf.project_path, "gv"))):
         conf.use_gv = True
         conf.hts_file_pathes["gv"] = os.path.join(conf.project_path, "gv")
 
     # Out directory
-    out_path = os.path.join(conf.CWD_PATH, args["--output"])
+    out_path = os.path.join(conf.CWD_PATH, args["<output>"])
 
     # Create output directory if none, else pass
     try:
@@ -196,10 +183,10 @@ def main():
     # 0. Generate list file
     gen_labfile_list_fname = conf.TMP_GEN_LABFILE_LIST_FNAME
     if args["--input_is_list"]:
-        gen_labfile_list_fname = args["--input"]
+        gen_labfile_list_fname = args["<input>"]
     else:
         with open(gen_labfile_list_fname, 'w') as f:
-            f.write(args["--input"] + '\n')
+            f.write(args["<input>"] + '\n')
 
     gen_labfile_base_lst = []
     gen_labfile_lst = []
@@ -212,7 +199,7 @@ def main():
 
     # Parameter generation
     parameter_generator = generation.generateGenerator(conf, out_handle, logger,
-                                                       args["--parallel"], args["--preserve"])
+                                                       int(args["--nb_proc"]), args["--preserve"])
     parameter_generator.generate(out_path, gen_labfile_list_fname, conf.use_gv)
 
     # 5. Convert/adapt parameters
@@ -232,7 +219,7 @@ def main():
 
     # 6. Call straight to synthesize
     renderer = rendering.generateRenderer(conf, out_handle, logger,
-                                          args["--parallel"], args["--preserve"])
+                                          int(args["--nb_proc"]), args["--preserve"])
     renderer.render(out_path, gen_labfile_base_lst)
 
 
@@ -245,8 +232,8 @@ def main():
 
 if __name__ == '__main__':
     try:
-        args = docopt(__doc__, version='pyhts 0.5')
-        print(args)
+        args = docopt(__doc__)
+
         # Debug time
         logger = setup_logging(args["--verbose"])
         if args["--verbose"]:
@@ -268,12 +255,15 @@ if __name__ == '__main__':
         if args["--verbose"]:
             logger.debug("TOTAL TIME IN MINUTES: %f" % ((time.time() - start_time) / 60.0))
 
-        # Exit program
-        sys.exit(0)
     except KeyboardInterrupt as e:  # Ctrl-C
         raise e
-    except SystemExit as e:         # sys.exit()
-        pass
+
+    except SystemExit as e:  # sys.exit()
+        print("ERROR, UNEXPECTED EXCEPTION")
+        print(str(e))
+        traceback.print_exc()
+        # os._exit(1)
+        sys.exit(1)
     except Exception as e:
         print("ERROR, UNEXPECTED EXCEPTION")
         print(str(e))

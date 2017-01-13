@@ -22,22 +22,22 @@ import subprocess       # Shell command calling
 import re
 import logging
 
+import queue
 from threading import Thread
-
 from shutil import copyfile # For copying files
 
-from rendering.parameterconversion import ParameterConversion
+from rendering.utils.parameterconversion import ParameterConversion
 
 ###############################################################################
 # Functions
 ###############################################################################
 class STRAIGHTRenderer:
 
-    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
+    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
-        self.is_parallel = is_parallel
+        self.nb_proc = nb_proc
         self.preserve = preserve
         self.MATLAB="matlab"
 
@@ -69,7 +69,7 @@ class STRAIGHTRenderer:
 
             # Read STRAIGHT params
             nb_elts = len(gen_labfile_base_lst)
-            if (self.is_parallel):
+            if self.nb_proc != 1:
                 f.write("parfor i=1:%d\n" % nb_elts)
             else:
                 f.write("for i=1:%d\n" % nb_elts)
@@ -120,19 +120,30 @@ class STRAIGHTRenderer:
         """
         Convert parameter to STRAIGHT params
         """
-        list_threads = []
+
+        # Convert duration to labels
+        q = queue.Queue()
+        threads = []
+        for base in range(self.nb_proc):
+            t = ParameterConversion(self.conf, out_path, self.logger, self.preserve, q)
+            t.start()
+            threads.append(t)
+
         for base in gen_labfile_base_lst:
-            thread = ParameterConversion(self.conf, out_path, base, self.logger, self.preserve)
-            thread.start()
+            base = base.strip()
+            base = os.path.splitext(os.path.basename(base))[0]
+            q.put(base)
 
-            if not self.is_parallel:
-                thread.join()
-            else:
-                list_threads.append(thread)
 
-        if self.is_parallel:
-            for thread in list_threads:
-                thread.join()
+        # block until all tasks are done
+        q.join()
+
+        # stop workers
+        for i in range(len(threads)):
+            q.put(None)
+
+        for t in threads:
+            t.join()
 
     def render(self, out_path, gen_labfile_base_lst):
         self.logger.info("Parameter conversion (could be quite long)")

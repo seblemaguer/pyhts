@@ -38,14 +38,14 @@ import numpy
 ###############################################################################
 class DNNGenerator(DEFAULTGenerator):
 
-    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
+    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
         """
         Constructor
         """
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
-        self.is_parallel = is_parallel
+        self.nb_proc = nb_proc
         self.preserve = preserve
         self.configuration_generator = ConfigurationGenerator(conf, logger)
         self.frameshift = self.conf.frameshift * 10000 # frameshift ms * 10 000> frameshift in HTK unit (frameshift * 100ns)
@@ -137,10 +137,9 @@ class DNNGenerator(DEFAULTGenerator):
         config = self.loadSession(model, config, stddev)
 
         # Convert duration to labels
-        nb_cpu = 30 # FIXME: hardcoded before changing command line archi
         q = queue.Queue()
         threads = []
-        for base in range(nb_cpu):
+        for base in range(self.nb_proc):
             t = DNNParamGeneration(self.conf, config,
                                    self.frameshift, out_path,
                                    self.logger, self.out_handle, self.preserve,

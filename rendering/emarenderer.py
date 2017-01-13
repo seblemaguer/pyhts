@@ -41,21 +41,32 @@ class EMARenderer:
 
     def parameter_conversion(self, out_path, gen_labfile_base_lst):
         """
-        Convert parameter to EMA to JSON
+        Convert parameter to STRAIGHT params
         """
-        list_threads = []
+
+        # Convert duration to labels
+        q = queue.Queue()
+        threads = []
+        for base in range(self.nb_proc):
+            t = EMAToJSON(self.conf, out_path, base, self.logger, q)
+            t.start()
+            threads.append(t)
+
         for base in gen_labfile_base_lst:
-            thread = EMAToJSON(self.conf, out_path, base, self.logger)
-            thread.start()
+            base = base.strip()
+            base = os.path.splitext(os.path.basename(base))[0]
+            q.put(base)
 
-            if not self.is_parallel:
-                thread.join()
-            else:
-                list_threads.append(thread)
 
-        if self.is_parallel:
-            for thread in list_threads:
-                thread.join()
+        # block until all tasks are done
+        q.join()
+
+        # stop workers
+        for i in range(len(threads)):
+            q.put(None)
+
+        for t in threads:
+            t.join()
 
     def debug_part(self, out_path, gen_labfile_base_lst):
         """

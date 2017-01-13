@@ -22,6 +22,8 @@ import subprocess       # Shell command calling
 import re
 import logging
 
+import queue
+
 from threading import Thread
 
 from shutil import copyfile # For copying files
@@ -34,62 +36,69 @@ from rendering.utils.weights import *
 # Functions
 ###############################################################################
 class WEIGHTRenderer:
-    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
+    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
-        self.is_parallel = is_parallel
+        self.nb_proc = nb_proc
         self.preserve = preserve
 
     def generateWeightJSON(self, out_path, gen_labfile_base_lst):
-        list_threads = []
-        for base in gen_labfile_base_lst:
-            thread = WeightsToJSON(self.conf, out_path, base, self.logger)
-            thread.start()
 
-            if not self.is_parallel:
-                thread.join()
-            else:
-                list_threads.append(thread)
+        # Convert duration to labels
+        q = queue.Queue()
+        threads = []
+        for base in range(self.nb_proc):
+            t = WeightsToJSON(self.conf, out_path, self.logger, q)
+            t.start()
+            threads.append(t)
 
-        if self.is_parallel:
-            for thread in list_threads:
-                thread.join()
+        with open(gen_labfile_list_fname) as f:
+            for base in f.readlines():
+                base = base.strip()
+                base = os.path.splitext(os.path.basename(base))[0]
+                q.put(base)
+
+
+        # block until all tasks are done
+        q.join()
+
+        # stop workers
+        for i in range(len(threads)):
+            q.put(None)
+
+        for t in threads:
+            t.join()
 
 
 
     def generateEMAFromWeights(self, out_path, gen_labfile_base_lst):
-        list_threads = []
-        for base in gen_labfile_base_lst:
-            thread = WeightsToEMA(self.conf, out_path, base, self.logger)
-            thread.start()
 
-            if not self.is_parallel:
-                thread.join()
-            else:
-                list_threads.append(thread)
+        # Convert duration to labels
+        q = queue.Queue()
+        threads = []
+        for base in range(self.nb_proc):
+            t = WeightsToEMA(self.conf, out_path, self.logger, q)
+            t.start()
+            threads.append(t)
 
-        if self.is_parallel:
-            for thread in list_threads:
-                thread.join()
+        with open(gen_labfile_list_fname) as f:
+            for base in f.readlines():
+                base = base.strip()
+                base = os.path.splitext(os.path.basename(base))[0]
+                q.put(base)
 
-    # def ema2json(self, out_path, gen_labfile_base_lst):
-    #     """
-    #     Convert parameter to EMA to JSON
-    #     """
-    #     list_threads = []
-    #     for base in gen_labfile_base_lst:
-    #         thread = EMAToJSON(self.conf, out_path, base, self.logger)
-    #         thread.start()
 
-    #         if not self.is_parallel:
-    #             thread.join()
-    #         else:
-    #             list_threads.append(thread)
+        # block until all tasks are done
+        q.join()
 
-    #     if self.is_parallel:
-    #         for thread in list_threads:
-    #             thread.join()
+        # stop workers
+        for i in range(len(threads)):
+            q.put(None)
+
+        for t in threads:
+            t.join()
+
 
 
     # FIXME: not quite sure I can parallelize this one

@@ -28,7 +28,6 @@ from shutil import copyfile # For copying files
 
 from rendering.emarenderer import *
 from rendering.straightrenderer import *
-CHANNELS =  ["T3", "T2", "T1", "ref", "jaw", "upperlip", "lowerlip"]
 
 ###############################################################################
 # Functions
