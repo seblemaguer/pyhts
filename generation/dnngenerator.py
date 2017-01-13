@@ -127,12 +127,12 @@ class DNNGenerator(DEFAULTGenerator):
         if ("restore_ckpt" in config) and (config['restore_ckpt'] > 0):
             model += "-%s" % str(config['restore_ckpt'])
 
-        # See for the variance (FIXME: optional ?)
-        stddev = numpy.ones(
-            config['num_output_units'], dtype=numpy.float32)
+        # # See for the variance (FIXME: optional ?)
+        # stddev = numpy.ones(
+        #     config['num_output_units'], dtype=numpy.float32)
 
-        # variance = DNNDataIO.read_data("%s/DNN/var/global.var" % self.conf.project_path)
-        # stddev = numpy.sqrt(variance)
+        variance = DNNDataIO.read_data("%s/DNN/var/global.var" % self.conf.project_path)
+        stddev = numpy.sqrt(variance)
 
         # Restore session
         config = self.loadSession(model, config, stddev)
