@@ -27,7 +27,7 @@ from shutil import copyfile # For copying files
 
 
 class WeightsToJSON(Thread):
-    def __init__(self, conf, out_path, base, logger, queue):
+    def __init__(self, conf, out_path, logger, queue):
         Thread.__init__(self)
         self.logger = logger
         self.conf = conf
@@ -46,13 +46,13 @@ class WeightsToJSON(Thread):
                     speakerWeights = cur_stream["parameters"]["speakerWeights"]
 
                     dim = cur_stream["order"]+1
-                    input_data = np.fromfile("%s/%s.weight" % (self.out_path, self.base),
+                    input_data = np.fromfile("%s/%s.weight" % (self.out_path, base),
                                              dtype=np.float32)
                     nb_frames = int(input_data.size / dim)
 
                     input_data = np.reshape(input_data, (nb_frames,dim))
 
-                    with open("%s/%s_weight.json" % (self.out_path, self.base), "w") as output_file:
+                    with open("%s/%s_weight.json" % (self.out_path, base), "w") as output_file:
                         output_file.write("[\n")
 
                         for f in range(0, nb_frames-1):
@@ -103,7 +103,7 @@ class WeightsToJSON(Thread):
 
 
 class WeightsToEMA(Thread):
-    def __init__(self, conf, out_path, base, logger, queue):
+    def __init__(self, conf, out_path, logger, queue):
         Thread.__init__(self)
         self.logger = logger
         self.conf = conf
@@ -123,9 +123,9 @@ class WeightsToEMA(Thread):
                     param =  cur_stream["parameters"]
                     cmd = [
                         "weights-to-ema-json",
-                        "--input", "%s/%s_weight.json" % (self.out_path, self.base),
+                        "--input", "%s/%s_weight.json" % (self.out_path, base),
                         "--model", param["tongue_model"],
-                        "--output", "%s/%s_ema.json" % (self.out_path, self.base),
+                        "--output", "%s/%s_ema.json" % (self.out_path, base),
                         "--reference", param["ref"]
                     ]
 

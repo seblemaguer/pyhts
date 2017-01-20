@@ -27,6 +27,7 @@ import queue
 from threading import Thread
 
 from shutil import copyfile # For copying files
+import shutil
 
 import numpy as np
 
@@ -53,11 +54,8 @@ class WEIGHTRenderer:
             t.start()
             threads.append(t)
 
-        with open(gen_labfile_list_fname) as f:
-            for base in f.readlines():
-                base = base.strip()
-                base = os.path.splitext(os.path.basename(base))[0]
-                q.put(base)
+        for base in gen_labfile_base_lst:
+            q.put(base)
 
 
         # block until all tasks are done
@@ -71,7 +69,6 @@ class WEIGHTRenderer:
             t.join()
 
 
-
     def generateEMAFromWeights(self, out_path, gen_labfile_base_lst):
 
         # Convert duration to labels
@@ -82,12 +79,9 @@ class WEIGHTRenderer:
             t.start()
             threads.append(t)
 
-        with open(gen_labfile_list_fname) as f:
-            for base in f.readlines():
-                base = base.strip()
-                base = os.path.splitext(os.path.basename(base))[0]
-                q.put(base)
 
+        for base in gen_labfile_base_lst:
+            q.put(base)
 
         # block until all tasks are done
         q.join()
@@ -106,7 +100,7 @@ class WEIGHTRenderer:
         framerate = 25
         for base in gen_labfile_base_lst:
             self.logger.info("\trendering video for %s" % base)
-            tmp_output_dir = "%s/%s" % (self.conf.TMP_PATH, base)
+            tmp_output_dir = "%s/%s-%s" % (self.conf.TMP_PATH, base, os.getpid())
             os.mkdir(tmp_output_dir)
 
             # set environment variables
@@ -121,10 +115,14 @@ class WEIGHTRenderer:
             self.logger.debug("ffmpeg -f %d -i %s/output_%%07d.png -c:v libx264 -r %d -pix_fmt yuv420p %s/%s.mp4" % (framerate, tmp_output_dir, framerate, out_path, base))
             os.system("ffmpeg -framerate %d -i %s/output_%%07d.png -c:v libx264 -r %d -pix_fmt yuv420p %s/%s.mp4 >/dev/null 2>/dev/null" % (framerate, tmp_output_dir, framerate, out_path, base))
 
+            shutil.rmtree(tmp_output_dir)
+
     def render(self, out_path, gen_labfile_base_lst):
         self.logger.info("Generate Weights json file")
         self.generateWeightJSON(out_path, gen_labfile_base_lst)
 
+        self.logger.info("Generate EMA from weights")
+        self.generateEMAFromWeights(out_path, gen_labfile_base_lst)
 
         self.logger.info("Generate Video")
         self.videoRendering(gen_labfile_base_lst, "/home/slemaguer/work/expes/current/mngu0_weights_hts2.3/synthesis/build/resources/tongue_model.json", out_path)
