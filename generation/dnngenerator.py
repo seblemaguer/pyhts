@@ -52,17 +52,23 @@ class DNNGenerator(DEFAULTGenerator):
 
 
     def generateConfigFile(self):
-        #FIXME: everything is hardcoded
+        input_dim = 691 # FIXME: hardcoded
+
+        output_dim = 0
+        for s in self.conf.conf["models"]["ffo"]["streams"]:
+            output_dim += ((s["order"] + 1) * len(s["winfiles"]) )
+
+
         conf = "[Architecture]\n"
-        conf += "num_input_units: 691\n"
-        conf += "num_hidden_units: [1024, 1024, 1024]\n"
-        conf += "num_output_units: 229\n"
-        conf += "hidden_activation: Sigmoid\n"
+        conf += "num_input_units: %d\n" % input_dim
+        conf += "num_hidden_units: %s\n"  % self.conf.conf["settings"]["dnn"]["num_hidden_units"]
+        conf += "num_output_units: %d\n" % output_dim
+        conf += "hidden_activation: %s\n"  % self.conf.conf["settings"]["dnn"]["hidden_activation"]
         conf += "output_activation: Linear\n"
         conf += "\n"
         conf += "[Others]\n"
-        conf += "num_threads: 0\n"
-        # conf += "restore_ckpt: 0\n"
+        conf += "num_threads: %d\n" % self.conf.conf["settings"]["dnn"]["num_threads"]
+        conf += "restore_ckpt: 183350\n" # FIXME: hardcoded value
 
         with open(self.conf.DNN_CONFIG, "w") as f:
             f.write(conf)
