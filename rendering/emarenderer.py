@@ -21,9 +21,9 @@ import time
 import subprocess       # Shell command calling
 import re
 import logging
-
+from rendering.utils.ema import *
 from threading import Thread
-
+import queue
 from shutil import copyfile # For copying files
 
 import numpy as np
@@ -32,11 +32,11 @@ import numpy as np
 # Functions
 ###############################################################################
 class EMARenderer:
-    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
+    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
-        self.is_parallel = is_parallel
+        self.nb_proc = nb_proc
         self.preserve = preserve
 
     def parameter_conversion(self, out_path, gen_labfile_base_lst):
@@ -48,7 +48,7 @@ class EMARenderer:
         q = queue.Queue()
         threads = []
         for base in range(self.nb_proc):
-            t = EMAToJSON(self.conf, out_path, base, self.logger, q)
+            t = EMAToJSON(self.conf, out_path, self.logger, q)
             t.start()
             threads.append(t)
 
@@ -77,12 +77,12 @@ class EMARenderer:
             thread = JSONtoPLY(self.conf, out_path, base, self.logger)
             thread.start()
 
-            if not self.is_parallel:
+            if not self.nb_proc:
                 thread.join()
             else:
                 list_threads.append(thread)
 
-        if self.is_parallel:
+        if self.nb_proc:
             for thread in list_threads:
                 thread.join()
 

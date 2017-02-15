@@ -13,7 +13,6 @@ LICENSE
 """
 
 import os
-# import sy
 import time
 import subprocess       # Shell command calling
 import re
@@ -37,7 +36,9 @@ import numpy
 # Functions
 ###############################################################################
 class DNNGenerator(DEFAULTGenerator):
-
+    """
+    TODO:
+    """
     def __init__(self, conf, out_handle, logger, nb_proc, preserve):
         """
         Constructor
