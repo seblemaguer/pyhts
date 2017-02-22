@@ -34,11 +34,11 @@ from rendering.straightrenderer import *
 ###############################################################################
 class STRAIGHTEMARenderer(STRAIGHTRenderer, EMARenderer):
 
-    def __init__(self, conf, out_handle, logger, is_parallel, preserve):
+    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
-        self.is_parallel = is_parallel
+        self.nb_proc = nb_proc
         self.preserve = preserve
         self.MATLAB="matlab"
 
