@@ -53,7 +53,6 @@ class EMAToJSON(Thread):
 
                     input_data = np.fromfile("%s/%s.ema" % (self.out_path, base),
                                              dtype=np.float32)
-                    print(input_data.size)
                     nb_frames = int(input_data.size / (len(cur_channels)*3))
 
                     input_data = np.reshape(input_data, (nb_frames, len(cur_channels)*3))
@@ -117,6 +116,49 @@ class EMAToJSON(Thread):
 
 
             self.queue.task_done()
+
+
+class JSONToEMA(Thread):
+    def __init__(self, conf, out_path, logger, queue):
+        Thread.__init__(self)
+        self.logger = logger
+        self.conf = conf
+        self.out_path = out_path
+        self.queue = queue
+
+    def run(self):
+
+        for cur_stream in self.conf.STREAMS:
+            if (cur_stream["kind"] == "ema") or  (cur_stream["kind"] == "weight"):
+                cur_channels = CHANNELS
+                if ("parameters" in cur_stream) and \
+                   ("channel_labels" in cur_stream["parameters"]) :
+                    cur_channels = cur_stream["parameters"]["channel_labels"]
+
+        while True:
+            base = self.queue.get()
+            if base is None:
+                break
+
+            input_filename = "%s/%s_ema.json" % (self.out_path, base)
+            output_filename = "%s/%s.ema" % (self.out_path, base)
+
+            with open(input_filename) as f:
+                json_ema = json.load(f)
+
+                nb_frames = int(len(json_ema["channels"][cur_channels[0]]["position"])/3)
+                matrix = np.ndarray((nb_frames, len(cur_channels)*3),dtype=np.float32)
+
+                for i in range(0, nb_frames):
+                    for j, c in enumerate(cur_channels):
+                        for d in range(0, 3):
+                            matrix[i, j*3+d] = json_ema["channels"][c]["position"][i*3+d]
+
+                with open(output_filename, "wb") as f_out:
+                    matrix.tofile(f_out)
+
+            self.queue.task_done()
+
 
 class JSONtoPLY(Thread):
     def __init__(self, conf, out_path, logger, queue):

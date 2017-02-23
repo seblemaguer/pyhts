@@ -124,13 +124,13 @@ class WeightsToEMA(Thread):
                     cmd = [
                         "weights-to-ema-json",
                         "--input", "%s/%s_weight.json" % (self.out_path, base),
-                        "--model", param["tongue_model"],
+                        "--model", param["tongue_model"].replace(".json", ".yaml"),
                         "--output", "%s/%s_ema.json" % (self.out_path, base),
                         "--reference", param["ref"]
                     ]
 
                     cmd += ["--sourceIds"] + [str(i) for i in param["sourceIds"]]
-                    cmd += ["--channels"] + param["channels"]
+                    cmd += ["--channels"] + param["channel_labels"]
 
                     subprocess.call(cmd)
 

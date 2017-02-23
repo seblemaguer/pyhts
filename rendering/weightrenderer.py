@@ -32,6 +32,7 @@ import shutil
 import numpy as np
 
 from rendering.utils.weights import *
+from rendering.utils.ema import *
 
 ###############################################################################
 # Functions
@@ -95,6 +96,30 @@ class WEIGHTRenderer:
 
 
 
+    def convertEMAJSONToBinary(self, out_path, gen_labfile_base_lst):
+
+        # Convert duration to labels
+        q = queue.Queue()
+        threads = []
+        for base in range(self.nb_proc):
+            t = JSONToEMA(self.conf, out_path, self.logger, q)
+            t.start()
+            threads.append(t)
+
+
+        for base in gen_labfile_base_lst:
+            q.put(base)
+
+        # block until all tasks are done
+        q.join()
+
+        # stop workers
+        for i in range(len(threads)):
+            q.put(None)
+
+        for t in threads:
+            t.join()
+
     # FIXME: not quite sure I can parallelize this one
     def videoRendering(self, gen_labfile_base_lst, model, out_path):
         framerate = 25
@@ -124,8 +149,11 @@ class WEIGHTRenderer:
         self.logger.info("Generate EMA from weights")
         self.generateEMAFromWeights(out_path, gen_labfile_base_lst)
 
-        self.logger.info("Generate Video")
-        self.videoRendering(gen_labfile_base_lst, "/home/slemaguer/work/expes/current/mngu0_weights_hts2.3/synthesis/build/resources/tongue_model.json", out_path)
+        self.logger.info("Convert JSON EMA to Binary EMA")
+        self.convertEMAJSONToBinary(out_path, gen_labfile_base_lst)
+
+        # self.logger.info("Generate Video")
+        # self.videoRendering(gen_labfile_base_lst, "/home/slemaguer/work/expes/current/mngu0_weights_hts2.3/synthesis/build/resources/tongue_model.json", out_path)
 
         # self.logger.info("EMA binary to JSON")
         # self.ema2json(out_path, gen_labfile_base_lst)
