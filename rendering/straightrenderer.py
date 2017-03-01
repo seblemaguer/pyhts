@@ -22,8 +22,7 @@ import subprocess       # Shell command calling
 import re
 import logging
 
-import queue
-from threading import Thread
+from multiprocessing import Process, Queue, JoinableQueue
 from shutil import copyfile # For copying files
 
 from rendering.utils.parameterconversion import ParameterConversion
@@ -122,12 +121,12 @@ class STRAIGHTRenderer:
         """
 
         # Convert duration to labels
-        q = queue.Queue()
-        threads = []
+        q = JoinableQueue()
+        processs = []
         for base in range(self.nb_proc):
             t = ParameterConversion(self.conf, out_path, self.logger, self.preserve, q)
             t.start()
-            threads.append(t)
+            processs.append(t)
 
         for base in gen_labfile_base_lst:
             base = base.strip()
@@ -139,10 +138,10 @@ class STRAIGHTRenderer:
         q.join()
 
         # stop workers
-        for i in range(len(threads)):
+        for i in range(len(processs)):
             q.put(None)
 
-        for t in threads:
+        for t in processs:
             t.join()
 
     def render(self, out_path, gen_labfile_base_lst):

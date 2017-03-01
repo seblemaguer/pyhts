@@ -22,8 +22,8 @@ import subprocess       # Shell command calling
 import re
 import logging
 from rendering.utils.ema import *
-from threading import Thread
-import queue
+
+from multiprocessing import Process, Queue, JoinableQueue
 from shutil import copyfile # For copying files
 
 import numpy as np
@@ -45,12 +45,12 @@ class EMARenderer:
         """
 
         # Convert duration to labels
-        q = queue.Queue()
-        threads = []
+        q = JoinableQueue()
+        processs = []
         for base in range(self.nb_proc):
             t = EMAToJSON(self.conf, out_path, self.logger, q)
             t.start()
-            threads.append(t)
+            processs.append(t)
 
         for base in gen_labfile_base_lst:
             base = base.strip()
@@ -62,29 +62,29 @@ class EMARenderer:
         q.join()
 
         # stop workers
-        for i in range(len(threads)):
+        for i in range(len(processs)):
             q.put(None)
 
-        for t in threads:
+        for t in processs:
             t.join()
 
     def debug_part(self, out_path, gen_labfile_base_lst):
         """
         Generate PLY debug information
         """
-        list_threads = []
+        list_processs = []
         for base in gen_labfile_base_lst:
-            thread = JSONtoPLY(self.conf, out_path, base, self.logger)
-            thread.start()
+            process = JSONtoPLY(self.conf, out_path, base, self.logger)
+            process.start()
 
             if not self.nb_proc:
-                thread.join()
+                process.join()
             else:
-                list_threads.append(thread)
+                list_processs.append(process)
 
         if self.nb_proc:
-            for thread in list_threads:
-                thread.join()
+            for process in list_processs:
+                process.join()
 
 
     def render(self, out_path, gen_labfile_base_lst):

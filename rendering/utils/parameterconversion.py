@@ -22,12 +22,13 @@ import subprocess       # Shell command calling
 import re
 import logging
 
-from threading import Thread
+
+from multiprocessing import Process, Queue, JoinableQueue
 
 
-class ParameterConversion(Thread):
+class ParameterConversion(Process):
     def __init__(self, conf, out_path, logger, preserve, queue):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.logger = logger
         self.conf = conf
         self.out_path = out_path

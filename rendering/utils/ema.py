@@ -22,7 +22,8 @@ import subprocess
 import numpy as np
 import json
 
-from threading import Thread
+
+from multiprocessing import Process, Queue, JoinableQueue
 
 from shutil import copyfile # For copying files
 
@@ -30,9 +31,9 @@ from shutil import copyfile # For copying files
 CHANNELS =  ["T3", "T2", "T1", "ref", "jaw", "upperlip", "lowerlip"]
 
 
-class EMAToJSON(Thread):
+class EMAToJSON(Process):
     def __init__(self, conf, out_path, logger, queue):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.logger = logger
         self.conf = conf
         self.out_path = out_path
@@ -99,9 +100,9 @@ class EMAToJSON(Thread):
                     # os.remove("%s/%s.ema" % (self.out_path, base))
 
 
-    # class JSONToEMA(Thread):
+    # class JSONToEMA(Process):
     #     def __init__(self, conf, out_path, base, logger):
-    #         Thread.__init__(self)
+    #         Process.__init__(self)
     #         self.logger = logger
     #         self.conf = conf
     #         self.out_path = out_path
@@ -118,9 +119,9 @@ class EMAToJSON(Thread):
             self.queue.task_done()
 
 
-class JSONToEMA(Thread):
+class JSONToEMA(Process):
     def __init__(self, conf, out_path, logger, queue):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.logger = logger
         self.conf = conf
         self.out_path = out_path
@@ -160,9 +161,9 @@ class JSONToEMA(Thread):
             self.queue.task_done()
 
 
-class JSONtoPLY(Thread):
+class JSONtoPLY(Process):
     def __init__(self, conf, out_path, logger, queue):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.logger = logger
         self.conf = conf
         self.out_path = out_path

@@ -22,8 +22,6 @@ import subprocess       # Shell command calling
 import re
 import logging
 
-from threading import Thread
-
 from shutil import copyfile # For copying files
 
 from rendering.emarenderer import *

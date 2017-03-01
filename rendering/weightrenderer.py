@@ -22,9 +22,7 @@ import subprocess       # Shell command calling
 import re
 import logging
 
-import queue
-
-from threading import Thread
+from multiprocessing import Process, Queue, JoinableQueue
 
 from shutil import copyfile # For copying files
 import shutil
@@ -48,12 +46,12 @@ class WEIGHTRenderer:
     def generateWeightJSON(self, out_path, gen_labfile_base_lst):
 
         # Convert duration to labels
-        q = queue.Queue()
-        threads = []
+        q = JoinableQueue()
+        processs = []
         for base in range(self.nb_proc):
             t = WeightsToJSON(self.conf, out_path, self.logger, q)
             t.start()
-            threads.append(t)
+            processs.append(t)
 
         for base in gen_labfile_base_lst:
             q.put(base)
@@ -63,22 +61,22 @@ class WEIGHTRenderer:
         q.join()
 
         # stop workers
-        for i in range(len(threads)):
+        for i in range(len(processs)):
             q.put(None)
 
-        for t in threads:
+        for t in processs:
             t.join()
 
 
     def generateEMAFromWeights(self, out_path, gen_labfile_base_lst):
 
         # Convert duration to labels
-        q = queue.Queue()
-        threads = []
+        q = JoinableQueue()
+        processs = []
         for base in range(self.nb_proc):
             t = WeightsToEMA(self.conf, out_path, self.logger, q)
             t.start()
-            threads.append(t)
+            processs.append(t)
 
         for base in gen_labfile_base_lst:
             q.put(base)
@@ -87,10 +85,10 @@ class WEIGHTRenderer:
         q.join()
 
         # stop workers
-        for i in range(len(threads)):
+        for i in range(len(processs)):
             q.put(None)
 
-        for t in threads:
+        for t in processs:
             t.join()
 
 
@@ -98,12 +96,12 @@ class WEIGHTRenderer:
     def convertEMAJSONToBinary(self, out_path, gen_labfile_base_lst):
 
         # Convert duration to labels
-        q = queue.Queue()
-        threads = []
+        q = JoinableQueue()
+        processs = []
         for base in range(self.nb_proc):
             t = JSONToEMA(self.conf, out_path, self.logger, q)
             t.start()
-            threads.append(t)
+            processs.append(t)
 
 
         for base in gen_labfile_base_lst:
@@ -113,10 +111,10 @@ class WEIGHTRenderer:
         q.join()
 
         # stop workers
-        for i in range(len(threads)):
+        for i in range(len(processs)):
             q.put(None)
 
-        for t in threads:
+        for t in processs:
             t.join()
 
     # FIXME: not quite sure I can parallelize this one

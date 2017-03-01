@@ -21,16 +21,17 @@ import re
 import logging
 import shutil
 
-from threading import Thread
+
+from multiprocessing import Process, Queue, JoinableQueue
 from shutil import copyfile # For copying files
 
 
 ################################################################################
-### Model composition Threads
+### Model composition Processs
 ################################################################################
-class CMPComposition(Thread):
+class CMPComposition(Process):
     def __init__(self, conf, _cmp_tree_path, cmp_model_fpath, full_list_fpath, logger, out_handle):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.conf = conf
         self._cmp_tree_path = _cmp_tree_path
         self.cmp_model_fpath = cmp_model_fpath
@@ -62,9 +63,9 @@ class CMPComposition(Thread):
               (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.cmp_model_fpath, self.conf.TMP_CMP_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_cmp.hed', self.full_list_fpath)
         subprocess.call(cmd.split(), stdout=self.out_handle)
 
-class DURComposition(Thread):
+class DURComposition(Process):
     def __init__(self, conf, _dur_tree_path, dur_model_fpath, full_list_fpath, logger, out_handle):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.conf = conf
         self._dur_tree_path = _dur_tree_path
         self.dur_model_fpath = dur_model_fpath
@@ -96,9 +97,9 @@ class DURComposition(Thread):
               (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.dur_model_fpath, self.conf.TMP_DUR_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_dur.hed', self.full_list_fpath)
         subprocess.call(cmd.split(), stdout=self.out_handle)
 
-class GVComposition(Thread):
+class GVComposition(Process):
     def __init__(self, conf, gv_dir, logger,out_handle):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.conf = conf
         self.gv_dir = gv_dir
         self.out_handle = out_handle

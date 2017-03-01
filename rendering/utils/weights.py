@@ -21,14 +21,15 @@ import logging
 import subprocess
 import numpy as np
 
-from threading import Thread
+
+from multiprocessing import Process, Queue, JoinableQueue
 
 from shutil import copyfile # For copying files
 
 
-class WeightsToJSON(Thread):
+class WeightsToJSON(Process):
     def __init__(self, conf, out_path, logger, queue):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.logger = logger
         self.conf = conf
         self.out_path = out_path
@@ -102,9 +103,9 @@ class WeightsToJSON(Thread):
             self.queue.task_done()
 
 
-class WeightsToEMA(Thread):
+class WeightsToEMA(Process):
     def __init__(self, conf, out_path, logger, queue):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.logger = logger
         self.conf = conf
         self.out_path = out_path
