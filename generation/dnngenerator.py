@@ -148,7 +148,7 @@ class DNNGenerator(DEFAULTGenerator):
         # FIXME: wha
         q = JoinableQueue()
         processes = []
-        for base in range(args.nb_proc):
+        for base in range(self.nb_proc):
             t = DNNParamGeneration(self.conf, config,
                                    self.frameshift, out_path,
                                    self.logger, self.out_handle, self.preserve,
