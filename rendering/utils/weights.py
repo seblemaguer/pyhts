@@ -126,7 +126,7 @@ class WeightsToEMA(Thread):
                         "--input", "%s/%s_weight.json" % (self.out_path, base),
                         "--model", param["tongue_model"].replace(".json", ".yaml"),
                         "--output", "%s/%s_ema.json" % (self.out_path, base),
-                        "--reference", param["ref"]
+                        "--reference", param["ref"], "--unit", "cm"
                     ]
 
                     cmd += ["--sourceIds"] + [str(i) for i in param["sourceIds"]]

@@ -80,7 +80,6 @@ class WEIGHTRenderer:
             t.start()
             threads.append(t)
 
-
         for base in gen_labfile_base_lst:
             q.put(base)
 
