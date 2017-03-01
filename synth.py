@@ -64,7 +64,6 @@ import re
 import logging
 import shutil
 
-from threading import Thread
 from shutil import copyfile # For copying files
 from pyhts_configuration import Configuration
 import numpy as np

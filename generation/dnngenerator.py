@@ -17,8 +17,9 @@ import time
 import subprocess       # Shell command calling
 import re
 
-from threading import Thread
-import queue
+
+# Multi process
+from multiprocessing import Process, Queue, JoinableQueue
 
 from shutil import copyfile # For copying files
 
@@ -144,17 +145,19 @@ class DNNGenerator(DEFAULTGenerator):
         # Restore session
         config = self.loadSession(model, config, stddev)
 
-        # Convert duration to labels
-        q = queue.Queue()
-        threads = []
-        for base in range(self.nb_proc):
+        # FIXME: wha
+        q = JoinableQueue()
+        processes = []
+        for base in range(args.nb_proc):
             t = DNNParamGeneration(self.conf, config,
                                    self.frameshift, out_path,
                                    self.logger, self.out_handle, self.preserve,
                                    q)
             t.start()
-            threads.append(t)
+            processes.append(t)
 
+
+        # Fill the queue for the workers
         with open(gen_labfile_list_fname) as f:
             for base in f.readlines():
                 base = base.strip()
@@ -167,15 +170,12 @@ class DNNGenerator(DEFAULTGenerator):
 
                 q.put(base)
 
-
-        # block until all tasks are done
-        q.join()
-
-        # stop workers
-        for i in range(len(threads)):
+        # Fill the queue by adding a None to indicate the end
+        for i in range(len(processes)):
             q.put(None)
 
-        for t in threads:
+        # Wait the end of the processes
+        for t in processes:
             t.join()
 
         config["session"].close()

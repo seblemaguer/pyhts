@@ -21,16 +21,17 @@ import re
 import logging
 import shutil
 
-from threading import Thread
-from shutil import copyfile # For copying files
+# Multi process
+from multiprocessing import Process, Queue, JoinableQueue
 
+from shutil import copyfile # For copying files
 
 import generation.dnn.DNNDataIO as DNNDataIO
 import generation.dnn.DNNDefine as DNNDefine
 
 import tensorflow as tf
 
-class DNNParamGeneration(Thread):
+class DNNParamGeneration(Process):
     def __init__(self, user_config, dnn_config, frameshift, out_path, logger, out_handle, preserve, queue):
         Thread.__init__(self)
         self.conf = user_config
