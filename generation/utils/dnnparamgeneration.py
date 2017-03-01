@@ -33,7 +33,7 @@ import tensorflow as tf
 
 class DNNParamGeneration(Process):
     def __init__(self, user_config, dnn_config, frameshift, out_path, logger, out_handle, preserve, queue):
-        Thread.__init__(self)
+        Process.__init__(self)
         self.conf = user_config
         self.dnn_config = dnn_config
         self.frameshift = frameshift
