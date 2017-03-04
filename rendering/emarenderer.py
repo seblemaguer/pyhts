@@ -39,7 +39,7 @@ class EMARenderer:
         self.nb_proc = nb_proc
         self.preserve = preserve
 
-    def parameter_conversion(self, out_path, gen_labfile_base_lst):
+    def EMA2JSON(self, out_path, gen_labfile_base_lst):
         """
         Convert parameter to STRAIGHT params
         """
@@ -56,10 +56,6 @@ class EMARenderer:
             base = base.strip()
             base = os.path.splitext(os.path.basename(base))[0]
             q.put(base)
-
-
-        # block until all tasks are done
-        q.join()
 
         # stop workers
         for i in range(len(processs)):
@@ -90,7 +86,7 @@ class EMARenderer:
     def render(self, out_path, gen_labfile_base_lst):
 
         self.logger.info("EMA binary to JSON")
-        self.parameter_conversion(out_path, gen_labfile_base_lst)
+        self.EMA2JSON(out_path, gen_labfile_base_lst)
 
 
         # self.logger.info("PLY rendering")

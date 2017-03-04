@@ -19,7 +19,8 @@ import re
 
 
 # Multi process
-from multiprocessing import Process, Queue, JoinableQueue
+# from multiprocessing import Process, Queue, JoinableQueue
+from queue import Queue as JoinableQueue
 
 from shutil import copyfile # For copying files
 

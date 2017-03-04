@@ -98,24 +98,6 @@ class EMAToJSON(Process):
 
                     # Cleaning
                     # os.remove("%s/%s.ema" % (self.out_path, base))
-
-
-    # class JSONToEMA(Process):
-    #     def __init__(self, conf, out_path, base, logger):
-    #         Process.__init__(self)
-    #         self.logger = logger
-    #         self.conf = conf
-    #         self.out_path = out_path
-    #         base = base
-
-    #     def run(self):
-    #         def input_file = "%s/%s_ema.json" % (self.out_path, base)
-    #         def output_file = "%s/%s.ema" % (self.out_path, base)
-
-    #         with open(input_file) as f:
-    #             content = json.load(f)
-
-
             self.queue.task_done()
 
 
