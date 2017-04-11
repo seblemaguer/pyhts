@@ -32,9 +32,8 @@ import generation.dnn.DNNDefine as DNNDefine
 
 import tensorflow as tf
 
-class DNNParamGeneration(Thread):
-    def __init__(self, user_config, dnn_config, frameshift, out_path, logger, out_handle, preserve, queue):
-        Thread.__init__(self)
+class DNNParamGeneration():
+    def __init__(self, user_config, dnn_config, frameshift, out_path, logger, out_handle, preserve):
         self.conf = user_config
         self.dnn_config = dnn_config
         self.frameshift = frameshift
@@ -42,7 +41,6 @@ class DNNParamGeneration(Thread):
         self.out_handle = out_handle
         self.logger = logger
         self.preserve = preserve
-        self.queue = queue
 
 
     def convertDUR2LAB(self, input_dur_path, output_lab_path):
@@ -218,26 +216,20 @@ class DNNParamGeneration(Thread):
             # Next
             start += dim
 
-    def run(self):
-        while True:
-            base = self.queue.get()
-            if base is None:
-                break
+    def process(self, base):
 
-            self.logger.info("starting DNN generation for %s" % base)
-            self.convertDUR2LAB("%s/%s.dur" % (self.out_path, base),
-                                "%s/%s.lab" % (self.out_path, base))
+        self.logger.info("starting DNN generation for %s" % base)
+        self.convertDUR2LAB("%s/%s.dur" % (self.out_path, base),
+                            "%s/%s.lab" % (self.out_path, base))
 
-            self.makeFeature("%s/%s.lab" % (self.out_path, base),
-                            "%s/%s.ffi" % (self.out_path, base))
+        self.makeFeature("%s/%s.lab" % (self.out_path, base),
+                        "%s/%s.ffi" % (self.out_path, base))
 
 
-            # Prediction of the ffo
-            self.forward(self.dnn_config,
-                         "%s/%s.ffi" % (self.out_path, base),
-                         "%s/%s.ffo" % (self.out_path, base))
+        # Prediction of the ffo
+        self.forward(self.dnn_config,
+                     "%s/%s.ffi" % (self.out_path, base),
+                     "%s/%s.ffo" % (self.out_path, base))
 
-            # Extract coefficients from the ffo
-            self.extractParam(self.out_path, base)
-
-            self.queue.task_done()
+        # Extract coefficients from the ffo
+        self.extractParam(self.out_path, base)

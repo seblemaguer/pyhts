@@ -147,15 +147,10 @@ class DNNGenerator(DEFAULTGenerator):
         config = self.loadSession(model, config, stddev)
 
         # FIXME: wha
-        q = JoinableQueue()
-        processes = []
-        for base in range(self.nb_proc):
-            t = DNNParamGeneration(self.conf, config,
-                                   self.frameshift, out_path,
-                                   self.logger, self.out_handle, self.preserve,
-                                   q)
-            t.start()
-            processes.append(t)
+        t = DNNParamGeneration(self.conf, config,
+                               self.frameshift, out_path,
+                               self.logger, self.out_handle, self.preserve,
+                               q)
 
 
         # Fill the queue for the workers
@@ -169,14 +164,6 @@ class DNNGenerator(DEFAULTGenerator):
                     kind = cmp["kind"]
                     os.remove("%s/%s.%s" % (out_path, base, kind))
 
-                q.put(base)
-
-        # Fill the queue by adding a None to indicate the end
-        for i in range(len(processes)):
-            q.put(None)
-
-        # Wait the end of the processes
-        for t in processes:
-            t.join()
+                t.process(base)
 
         config["session"].close()
