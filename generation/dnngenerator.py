@@ -217,8 +217,8 @@ class DNNGenerator(DEFAULTGenerator):
         for base in range(self.nb_proc):
             t = DNNParamExtraction(self.conf,
                                    self.frameshift, out_path,
-                                   self.logger, self.out_handle, self.preserve,
-                                   q)
+                                   self.logger, self.out_handle, self.preserve)
+
             t.start()
             processes.append(t)
 
