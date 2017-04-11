@@ -129,6 +129,42 @@ class DNNGenerator(DEFAULTGenerator):
         # Use the default HTS to get the duration
         DEFAULTGenerator.generate(self, out_path, gen_labfile_list_fname, use_gv)
 
+        # FIXME: wha
+        q = JoinableQueue()
+        processes = []
+        for base in range(self.nb_proc):
+            t = DNNParamPreparation(self.conf,
+                                   self.frameshift, out_path,
+                                   self.logger, self.out_handle, self.preserve,
+                                   q)
+            t.start()
+            processes.append(t)
+
+
+        # Fill the queue for the workers
+        with open(gen_labfile_list_fname) as f:
+            for base in f.readlines():
+                base = base.strip()
+                base = os.path.splitext(os.path.basename(base))[0]
+
+                # First some cleaning
+                for cmp in self.conf.conf["models"]["cmp"]["streams"]:
+                    kind = cmp["kind"]
+                    os.remove("%s/%s.%s" % (out_path, base, kind))
+
+                q.put(base)
+
+        # Fill the queue by adding a None to indicate the end
+        for i in range(len(processes)):
+            q.put(None)
+
+        # Wait the end of the processes
+        for t in processes:
+            t.join()
+
+        #########################################################################
+        ### DNN Part
+        #########################################################################
         # load the config file
         self.generateConfigFile()
         config = DNNDataIO.load_config(self.conf.DNN_CONFIG)
@@ -151,6 +187,7 @@ class DNNGenerator(DEFAULTGenerator):
         # Restore session
         config = self.loadSession(model, config, stddev)
 
+
         # FIXME: wha
         t = DNNParamGeneration(self.conf, config,
                                self.frameshift, out_path,
@@ -172,3 +209,37 @@ class DNNGenerator(DEFAULTGenerator):
                 t.process(base)
 
         config["session"].close()
+
+
+        # FIXME: wha
+        q = JoinableQueue()
+        processes = []
+        for base in range(self.nb_proc):
+            t = DNNParamExtraction(self.conf,
+                                   self.frameshift, out_path,
+                                   self.logger, self.out_handle, self.preserve,
+                                   q)
+            t.start()
+            processes.append(t)
+
+
+        # Fill the queue for the workers
+        with open(gen_labfile_list_fname) as f:
+            for base in f.readlines():
+                base = base.strip()
+                base = os.path.splitext(os.path.basename(base))[0]
+
+                # First some cleaning
+                for cmp in self.conf.conf["models"]["cmp"]["streams"]:
+                    kind = cmp["kind"]
+                    os.remove("%s/%s.%s" % (out_path, base, kind))
+
+                q.put(base)
+
+        # Fill the queue by adding a None to indicate the end
+        for i in range(len(processes)):
+            q.put(None)
+
+        # Wait the end of the processes
+        for t in processes:
+            t.join()

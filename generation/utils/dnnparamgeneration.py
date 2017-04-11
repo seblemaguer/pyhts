@@ -21,10 +21,9 @@ import re
 import logging
 import shutil
 
-# # Multi process
-# from multiprocessing import Process, Queue, JoinableQueue
+# Multi process
+from multiprocessing import Process, Queue, JoinableQueue
 
-from threading import Thread
 from shutil import copyfile # For copying files
 
 import generation.dnn.DNNDataIO as DNNDataIO
@@ -32,16 +31,16 @@ import generation.dnn.DNNDefine as DNNDefine
 
 import tensorflow as tf
 
-class DNNParamGeneration():
-    def __init__(self, user_config, dnn_config, frameshift, out_path, logger, out_handle, preserve):
+class DNNParamPreparation(Process):
+    def __init__(self, user_config, frameshift, out_path, logger, out_handle, preserve, queue):
+        Process.__init__(self)
         self.conf = user_config
-        self.dnn_config = dnn_config
         self.frameshift = frameshift
         self.out_path = out_path
         self.out_handle = out_handle
         self.logger = logger
         self.preserve = preserve
-
+        self.queue = queue
 
     def convertDUR2LAB(self, input_dur_path, output_lab_path):
         result = ""
@@ -90,6 +89,36 @@ class DNNParamGeneration():
         wrapped_cmd = ["bash", "-c", cmd]
         subprocess.call(wrapped_cmd)
 
+
+    def run(self):
+        while True:
+            base = self.queue.get()
+            if base is None:
+                break
+
+            self.logger.info("starting DNN preparation for %s" % base)
+            self.convertDUR2LAB("%s/%s.dur" % (self.out_path, base),
+                                "%s/%s.lab" % (self.out_path, base))
+
+            self.makeFeature("%s/%s.lab" % (self.out_path, base),
+                            "%s/%s.ffi" % (self.out_path, base))
+
+            self.logger.info("end of DNN preparation for %s" % base)
+
+            self.queue.task_done()
+
+
+class DNNParamGeneration():
+    def __init__(self, user_config, dnn_config, frameshift, out_path, logger, out_handle, preserve):
+        self.conf = user_config
+        self.dnn_config = dnn_config
+        self.frameshift = frameshift
+        self.out_path = out_path
+        self.out_handle = out_handle
+        self.logger = logger
+        self.preserve = preserve
+
+
     def fillFeedDict(self, data_set, keep_prob, placeholders, batch_size, shuffle=True):
         inputs_pl, outputs_pl, keep_prob_pl = placeholders
         inputs_feed, outputs_feed = data_set.get_pairs(batch_size, shuffle)
@@ -131,9 +160,30 @@ class DNNParamGeneration():
 
         self.logger.debug('End forwarding')
 
+    def process(self, base):
+
+        self.logger.info("starting DNN generation for %s" % base)
+
+
+        # Prediction of the ffo
+        self.forward(self.dnn_config,
+                     "%s/%s.ffi" % (self.out_path, base),
+                     "%s/%s.ffo" % (self.out_path, base))
+
+
+
+def DNNParamExtraction(Process):
+    def __init__(self, user_config, frameshift, out_path, logger, out_handle, preserve, queue):
+        Process.__init__(self)
+        self.conf = user_config
+        self.frameshift = frameshift
+        self.out_path = out_path
+        self.out_handle = out_handle
+        self.logger = logger
+        self.preserve = preserve
+        self.queue = queue
 
     def extractParam(self, out_path, base):
-
         ffo_size = 0
         for map_ffo in self.conf.conf["models"]["ffo"]["streams"]:
             ffo_size += (map_ffo["order"]+1) * len(map_ffo["winfiles"])
@@ -155,17 +205,13 @@ class DNNParamGeneration():
             if kind != "vuv": # v/uv is just a mask => no dyn => no "generation"
 
                 # Generate variance
+                var_fname = "%s/%s.%s.var" % (out_path, base, kind)
                 array = np.fromfile("%s/DNN/var/%s.var" % (self.conf.project_path, kind), dtype=np.float32)
                 with open(var_fname, "wb") as f_out:
                     for t in range(0, T):
                         array.astype(np.float32).tofile(f_out)
                         self.logger.debug("extract %s (%d:%d) var extracted from ffo" % (kind, t, T))
 
-                var_fname = "%s/%s.%s.var" % (out_path, base, kind)
-                for t in range(0, T):
-                    cmd = "cat %s/DNN/var/%s.var >> %s" % (self.conf.project_path, kind, var_fname)
-                    wrapped_cmd = ["bash", "-c", cmd]
-                    subprocess.call(wrapped_cmd)
 
                 win_files = map_ffo["winfiles"]
                 if len(win_files) < 3:
@@ -222,20 +268,17 @@ class DNNParamGeneration():
             # Next
             start += dim
 
-    def process(self, base):
+    def run(self):
+        while True:
+            base = self.queue.get()
+            if base is None:
+                break
 
-        self.logger.info("starting DNN generation for %s" % base)
-        self.convertDUR2LAB("%s/%s.dur" % (self.out_path, base),
-                            "%s/%s.lab" % (self.out_path, base))
+            self.logger.info("starting DNN extraction for %s" % base)
 
-        self.makeFeature("%s/%s.lab" % (self.out_path, base),
-                        "%s/%s.ffi" % (self.out_path, base))
+            # Extract coefficients from the ffo
+            self.extractParam(self.out_path, base)
 
+            self.logger.info("end of DNN extraction for %s" % base)
 
-        # Prediction of the ffo
-        self.forward(self.dnn_config,
-                     "%s/%s.ffi" % (self.out_path, base),
-                     "%s/%s.ffo" % (self.out_path, base))
-
-        # Extract coefficients from the ffo
-        self.extractParam(self.out_path, base)
+            self.queue.task_done()
