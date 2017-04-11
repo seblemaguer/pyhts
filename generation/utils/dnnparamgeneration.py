@@ -14,7 +14,7 @@ LICENSE
 
 import os
 import sys
-
+import numpy as np
 import time
 import subprocess       # Shell command calling
 import re
@@ -155,6 +155,12 @@ class DNNParamGeneration():
             if kind != "vuv": # v/uv is just a mask => no dyn => no "generation"
 
                 # Generate variance
+                array = np.fromfile("%s/DNN/var/%s.var" % (self.conf.project_path, kind), dtype=np.float32)
+                with open(var_fname, "wb") as f_out:
+                    for t in range(0, T):
+                        array.astype(np.float32).tofile(f_out)
+                        self.logger.debug("extract %s (%d:%d) var extracted from ffo" % (kind, t, T))
+
                 var_fname = "%s/%s.%s.var" % (out_path, base, kind)
                 for t in range(0, T):
                     cmd = "cat %s/DNN/var/%s.var >> %s" % (self.conf.project_path, kind, var_fname)

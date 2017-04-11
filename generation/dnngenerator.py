@@ -71,6 +71,7 @@ class DNNGenerator(DEFAULTGenerator):
         conf += "\n"
         conf += "[Others]\n"
         conf += "num_threads: %d\n" % self.conf.conf["settings"]["dnn"]["num_threads"]
+        conf += "restore_ckpt: 321200\n" # FIXME: hardcoded value keep it for v1.0 for testing
 
         with open(self.conf.DNN_CONFIG, "w") as f:
             f.write(conf)
