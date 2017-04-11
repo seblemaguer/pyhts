@@ -16,7 +16,7 @@ import os
 import time
 import subprocess       # Shell command calling
 import re
-
+import glob
 
 # Multi process
 # from multiprocessing import Process, Queue, JoinableQueue
@@ -71,7 +71,6 @@ class DNNGenerator(DEFAULTGenerator):
         conf += "\n"
         conf += "[Others]\n"
         conf += "num_threads: %d\n" % self.conf.conf["settings"]["dnn"]["num_threads"]
-        conf += "restore_ckpt: 321200\n" # FIXME: hardcoded value
 
         with open(self.conf.DNN_CONFIG, "w") as f:
             f.write(conf)
@@ -132,9 +131,14 @@ class DNNGenerator(DEFAULTGenerator):
         # load the config file
         self.generateConfigFile()
         config = DNNDataIO.load_config(self.conf.DNN_CONFIG)
+
         model = '%s/DNN/models/model.ckpt' % self.conf.project_path
         if ("restore_ckpt" in config) and (config['restore_ckpt'] > 0):
-            model += "-%s" % str(config['restore_ckpt'])
+            model = '-'.join([model, str(config['restore_ckpt'])])
+
+        # files = glob.glob("%s*" % model)
+        # if len(files) == 0:
+        #     sys.exit('  ERROR  main: No such file %s' % model)
 
         # # See for the variance (FIXME: optional ?)
         # stddev = numpy.ones(
