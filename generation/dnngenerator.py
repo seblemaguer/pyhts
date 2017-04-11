@@ -191,8 +191,7 @@ class DNNGenerator(DEFAULTGenerator):
         # FIXME: wha
         t = DNNParamGeneration(self.conf, config,
                                self.frameshift, out_path,
-                               self.logger, self.out_handle, self.preserve,
-                               q)
+                               self.logger, self.out_handle, self.preserve)
 
 
         # Fill the queue for the workers
@@ -200,11 +199,6 @@ class DNNGenerator(DEFAULTGenerator):
             for base in f.readlines():
                 base = base.strip()
                 base = os.path.splitext(os.path.basename(base))[0]
-
-                # First some cleaning
-                for cmp in self.conf.conf["models"]["cmp"]["streams"]:
-                    kind = cmp["kind"]
-                    os.remove("%s/%s.%s" % (out_path, base, kind))
 
                 t.process(base)
 
@@ -217,7 +211,7 @@ class DNNGenerator(DEFAULTGenerator):
         for base in range(self.nb_proc):
             t = DNNParamExtraction(self.conf,
                                    self.frameshift, out_path,
-                                   self.logger, self.out_handle, self.preserve)
+                                   self.logger, self.out_handle, self.preserve, q)
 
             t.start()
             processes.append(t)
@@ -228,11 +222,6 @@ class DNNGenerator(DEFAULTGenerator):
             for base in f.readlines():
                 base = base.strip()
                 base = os.path.splitext(os.path.basename(base))[0]
-
-                # First some cleaning
-                for cmp in self.conf.conf["models"]["cmp"]["streams"]:
-                    kind = cmp["kind"]
-                    os.remove("%s/%s.%s" % (out_path, base, kind))
 
                 q.put(base)
 
