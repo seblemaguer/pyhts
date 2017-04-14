@@ -55,7 +55,14 @@ class DNNGenerator(DEFAULTGenerator):
 
 
     def generateConfigFile(self):
-        input_dim = 691 # FIXME: hardcoded
+        input_dim = 0
+        q_matcher = re.compile("^[^#].*$")
+        qconf = '%s/DNN/qconf.conf' % self.conf.project_path
+        with open(qconf) as f_qconf:
+            for l in f_qconf:
+                l = l.strip()
+                if q_matcher.match(l):
+                    input_dim += 1
 
         output_dim = 0
         for s in self.conf.conf["models"]["ffo"]["streams"]:
