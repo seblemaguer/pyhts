@@ -172,7 +172,7 @@ class DNNParamGeneration():
 
 
 
-def DNNParamExtraction(Process):
+class DNNParamExtraction(Process):
     def __init__(self, user_config, frameshift, out_path, logger, out_handle, preserve, queue):
         Process.__init__(self)
         self.conf = user_config
