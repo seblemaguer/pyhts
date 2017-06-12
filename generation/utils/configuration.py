@@ -6,6 +6,8 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    This package provides helper classes to deal with HTS configuration.
+    For now only HMGenS-like synthesis is supported
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -17,13 +19,30 @@ import shutil
 
 
 class ConfigurationGenerator:
-
+    """HMGenS-like synthesis configuration helper
+    """
     def __init__(self, conf, logger):
+        """Constructor
+
+        :param conf: the configuration object
+        :param logger: the logger
+        :returns: None
+        :rtype:
+
+        """
         self.conf = conf
         self.logger = logger
 
 
     def generateTrainingConfiguration(self):
+        """Generate the configuration file needed to adapt the models to be able to synthesize unseen labels.
+
+        :returns:None
+        :rtype:
+
+        """
+
+
         """
         Generate 'training configuration' => needed for the tree search
         """
@@ -58,11 +77,13 @@ class ConfigurationGenerator:
 
 
     def generateSynthesisConfiguration(self, use_gv):
-        """
-        Generate the synthesis configuration file needed by HMGenS
-        """
-        # Synthesis configuration
+        """Generate the synthesis configuration file needed by HMGenS
 
+        :param use_gv: switch to activate the use of the global variance
+        :returns: None
+        :rtype:
+
+        """
         # config file for parameter generation
         with open(self.conf.SYNTH_CONFIG, 'w') as f:
 

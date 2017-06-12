@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 AUTHOR
 
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Package which provides the classes to adapt the model to be used by HMGenS to achieve the synthesis
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -30,7 +32,23 @@ from shutil import copyfile # For copying files
 ### Model composition Processs
 ################################################################################
 class CMPComposition(Process):
+    """ Class to generate the CMP models based on a given set of labels, the trained models and decision trees.
+    This class is a process to be able to be run in parallel.
+    """
+
     def __init__(self, conf, _cmp_tree_path, cmp_model_fpath, full_list_fpath, logger, out_handle):
+        """ Constructor
+
+        :param conf: the configuration object
+        :param _cmp_tree_path: the path of the decision tree file
+        :param cmp_model_fpath: the path of the model file
+        :param full_list_fpath: the path of the file containing the list of needed labels
+        :param logger: the logger
+        :param out_handle: the handle to dump the standard output of the command
+        :returns: None
+        :rtype:
+
+        """
         Process.__init__(self)
         self.conf = conf
         self._cmp_tree_path = _cmp_tree_path
@@ -40,6 +58,14 @@ class CMPComposition(Process):
         self.logger = logger
 
     def mk_unseen_script(self):
+        """Generate the HHEd script which contains the command to generate an adapted model file
+        for the synthesis stage.
+
+        :returns:None
+        :rtype:
+
+        """
+
         with open('%s_cmp.hed' % self.conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
             f.write('\nTR 2\n\n')
             # Load trees
@@ -56,6 +82,12 @@ class CMPComposition(Process):
             f.write('CO "%s_cmp"\n\n' % self.conf.TYPE_TIED_LIST_BASE)
 
     def run(self):
+        """Generate the model adapted to the synthesis for the CMP part
+
+        :returns: None
+        :rtype:
+
+        """
         self.mk_unseen_script()
 
         self.logger.info("CMP unseen model building")
@@ -63,8 +95,25 @@ class CMPComposition(Process):
               (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.cmp_model_fpath, self.conf.TMP_CMP_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_cmp.hed', self.full_list_fpath)
         subprocess.call(cmd.split(), stdout=self.out_handle)
 
+
 class DURComposition(Process):
+    """ Class to generate the duration models based on a given set of labels, the trained models and decision trees.
+    This class is a process to be able to be run in parallel.
+    """
+
     def __init__(self, conf, _dur_tree_path, dur_model_fpath, full_list_fpath, logger, out_handle):
+        """ Constructor
+
+        :param conf: the configuration object
+        :param _dur_tree_path: the path of the decision tree file
+        :param dur_model_fpath: the path of the model file
+        :param full_list_fpath: the path of the file containing the list of needed labels
+        :param logger: the logger
+        :param out_handle: the handle to dump the standard output of the command
+        :returns: None
+        :rtype:
+
+        """
         Process.__init__(self)
         self.conf = conf
         self._dur_tree_path = _dur_tree_path
@@ -74,6 +123,13 @@ class DURComposition(Process):
         self.logger = logger
 
     def mk_unseen_script(self):
+        """Generate the HHEd script which contains the command to generate an adapted model file
+        for the synthesis stage.
+
+        :returns:None
+        :rtype:
+
+        """
         with open('%s_dur.hed' % self.conf.TYPE_HED_UNSEEN_BASE, 'w') as f:
             f.write('\nTR 2\n\n')
 
@@ -90,6 +146,12 @@ class DURComposition(Process):
             f.write('CO "%s_dur"\n\n' % self.conf.TYPE_TIED_LIST_BASE)
 
     def run(self):
+        """Generate the model adapted to the synthesis for the duration part
+
+        :returns: None
+        :rtype:
+
+        """
         self.mk_unseen_script()
 
         self.logger.info("Duration unseen model building")
@@ -98,7 +160,21 @@ class DURComposition(Process):
         subprocess.call(cmd.split(), stdout=self.out_handle)
 
 class GVComposition(Process):
-    def __init__(self, conf, gv_dir, logger,out_handle):
+    """ Class to generate the global variance.
+    This class is a process to be able to be run in parallel.
+    """
+
+    def __init__(self, conf, _gv_path, logger,out_handle):
+        """ Constructor
+
+        :param conf: the configuration object
+        :param _gv_path: the path of the directory containing all the needed files for the GV stage
+        :param logger: the logger
+        :param out_handle: the handle to dump the standard output of the command
+        :returns: None
+        :rtype:
+
+        """
         Process.__init__(self)
         self.conf = conf
         self.gv_dir = gv_dir
@@ -106,6 +182,13 @@ class GVComposition(Process):
         self.logger = logger
 
     def mk_unseen_script(self):
+        """Generate the HHEd script which contains the command to generate an adapted model file
+        for the synthesis stage.
+
+        :returns:None
+        :rtype:
+
+        """
         with open(self.conf.GV_HED_UNSEEN_BASE + '.hed', 'w') as f:
             f.write('\nTR 2\n\n')
 
@@ -123,6 +206,12 @@ class GVComposition(Process):
             f.write('CO "%s"\n\n' % self.conf.GV_TIED_LIST_TMP)
 
     def run(self):
+        """Generate the model adapted to the synthesis for the global variance part
+
+        :returns: None
+        :rtype:
+
+        """
         self.mk_unseen_script()
 
         self.logger.info("Global variance unseen model building")

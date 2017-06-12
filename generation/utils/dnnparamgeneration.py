@@ -6,6 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Package providing helper classes for the support of a tensorflow-based DNN synthesis.
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -32,7 +33,25 @@ import generation.dnn.DNNDefine as DNNDefine
 import tensorflow as tf
 
 class DNNParamPreparation(Process):
-    def __init__(self, user_config, frameshift, out_path, logger, out_handle, preserve, queue):
+    """Helper class to prepare the DNN input feature vectors considering the given labels, the
+    duration produced by HTS and a given configuration
+    """
+
+    def __init__(self, conf, frameshift, out_path, logger, out_handle, preserve, queue):
+        """Constructor
+
+        :param conf: the user configuration object
+        :param frameshift: the default frameshift
+        :param out_path: path of the directory which is going to contain the input feature vector files
+        :param logger: the logger
+        :param out_handle: the handle to redirect the standard output of a command
+        :param preserve: switch to not delete intermediate produced files
+        :param queue: the queue which is going to contains the basenames of the files to deal with
+        :returns: None
+        :rtype:
+
+        """
+
         Process.__init__(self)
         self.conf = user_config
         self.frameshift = frameshift
@@ -43,6 +62,15 @@ class DNNParamPreparation(Process):
         self.queue = queue
 
     def convertDUR2LAB(self, input_dur_path, output_lab_path):
+        """Convert duration file to an HTK lab formatted file
+
+        :param input_dur_path: the duration file path
+        :param output_lab_path: the HTK label formatted file path
+        :returns: None
+        :rtype:
+
+        """
+
         result = ""
         with open(input_dur_path) as f:
 
@@ -82,6 +110,14 @@ class DNNParamPreparation(Process):
 
 
     def makeFeature(self, input_lab_path, output_ffi_path):
+        """From the lab generate the input feature vector sequence file
+
+        :param input_lab_path: the HTK label file path
+        :param output_ffi_path: the input feature file path
+        :returns: None
+        :rtype:
+
+        """
         config_path = self.conf.project_path + "/DNN/qconf.conf"
         cmd = "perl utils/makefeature.pl %s %d %s | x2x +af > %s" % \
           (config_path, self.frameshift, input_lab_path, output_ffi_path)
@@ -91,6 +127,12 @@ class DNNParamPreparation(Process):
 
 
     def run(self):
+        """Run the parameter extraction
+
+        :returns: None
+        :rtype:
+
+        """
         while True:
             base = self.queue.get()
             if base is None:
@@ -109,7 +151,21 @@ class DNNParamPreparation(Process):
 
 
 class DNNParamGeneration():
-    def __init__(self, user_config, dnn_config, frameshift, out_path, logger, out_handle, preserve):
+    """Helper to achieve the DNN parameter generation
+    """
+    def __init__(self, conf, dnn_config, frameshift, out_path, logger, out_handle, preserve):
+        """Constructor
+
+        :param conf: the user configuration object
+        :param frameshift: the default frameshift
+        :param out_path: path of the directory which is going to contain the input feature vector files
+        :param logger: the logger
+        :param out_handle: the handle to redirect the standard output of a command
+        :param preserve: switch to not delete intermediate produced files
+        :returns: None
+        :rtype:
+
+        """
         self.conf = user_config
         self.dnn_config = dnn_config
         self.frameshift = frameshift
@@ -120,6 +176,17 @@ class DNNParamGeneration():
 
 
     def fillFeedDict(self, data_set, keep_prob, placeholders, batch_size, shuffle=True):
+        """FIXME! briefly describe function
+
+        :param data_set:
+        :param keep_prob:
+        :param placeholders:
+        :param batch_size:
+        :param shuffle:
+        :returns:
+        :rtype:
+
+        """
         inputs_pl, outputs_pl, keep_prob_pl = placeholders
         inputs_feed, outputs_feed = data_set.get_pairs(batch_size, shuffle)
         feed_dict = {
@@ -130,6 +197,15 @@ class DNNParamGeneration():
         return feed_dict
 
     def forward(self, config, ffi_path, ffo_path):
+        """Achieve the prediction
+
+        :param config: the DNN configuration object
+        :param ffi_path: the input feature file path
+        :param ffo_path: the output feature file path
+        :returns: None
+        :rtype:
+
+        """
 
         self.logger.debug('Start forwarding')
         self.logger.debug('  Processing %s' % ffi_path)
@@ -160,7 +236,14 @@ class DNNParamGeneration():
 
         self.logger.debug('End forwarding')
 
-    def process(self, base):
+    def run(self, base):
+        """Run the parameter generation for the utterance identified by the basename
+
+        :param base: the basename of the utterance
+        :returns: None
+        :rtype:
+
+        """
 
         self.logger.info("starting DNN generation for %s" % base)
 
@@ -173,9 +256,24 @@ class DNNParamGeneration():
 
 
 class DNNParamExtraction(Process):
-    def __init__(self, user_config, frameshift, out_path, logger, out_handle, preserve, queue):
+    """Helper to extract the acoustic parameters from the output features
+    """
+    def __init__(self, conf, frameshift, out_path, logger, out_handle, preserve, queue):
+        """Constructor
+
+        :param conf: the user configuration object
+        :param frameshift: the default frameshift
+        :param out_path: path of the directory which is going to contain the input feature vector files
+        :param logger: the logger
+        :param out_handle: the handle to redirect the standard output of a command
+        :param preserve: switch to not delete intermediate produced files
+        :param queue: the queue which is going to contains the basenames of the files to deal with
+        :returns: None
+        :rtype:
+
+        """
         Process.__init__(self)
-        self.conf = user_config
+        self.conf = conf
         self.frameshift = frameshift
         self.out_path = out_path
         self.out_handle = out_handle
@@ -184,6 +282,14 @@ class DNNParamExtraction(Process):
         self.queue = queue
 
     def extractParam(self, out_path, base):
+        """Extract acoustic parameters from the output features for a specific utterance
+
+        :param out_path: the output feature file path
+        :param base: the utterance basename
+        :returns: None
+        :rtype:
+
+        """
         ffo_size = 0
         for map_ffo in self.conf.conf["models"]["ffo"]["streams"]:
             ffo_size += (map_ffo["order"]+1) * len(map_ffo["winfiles"])
@@ -269,6 +375,12 @@ class DNNParamExtraction(Process):
             start += dim
 
     def run(self):
+        """Run the acoustic parameter extraction
+
+        :returns: None
+        :rtype:
+
+        """
         while True:
             base = self.queue.get()
             if base is None:

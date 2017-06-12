@@ -6,6 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Module which contains the generator used to produced the coefficients based on the labels and the HTS models.
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -17,6 +18,9 @@ from generation.defaultgenerator import *
 from generation.dnngenerator import *
 
 def generateGenerator(conf, out_handle, logger, is_parallel=False, preserve=False):
+    """Helper to instanciate the accurate generator based on the given configuration object conf.
+    out_handle, logger, is_parallel and preserve are the arguments of the constructor of the generator.
+    """
     try:
         return globals()[conf.generator.upper() + "Generator"](conf, out_handle, logger, is_parallel, preserve)
     except KeyError:

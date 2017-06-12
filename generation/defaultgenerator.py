@@ -6,6 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Package which provides the classes needed to achieve the default HMM generation using HTS
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -29,14 +30,21 @@ from shutil import copyfile # For copying files
 from generation.utils.composition import *
 from generation.utils.configuration import *
 
-###############################################################################
-# Functions
-###############################################################################
 class DEFAULTGenerator:
+    """Generator which is achieving the default HMGenS parameter generation
 
+    """
     def __init__(self, conf, out_handle, logger, nb_proc, preserve):
-        """
-        Constructor
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_handle: the handle to dump the standard output of the command
+        :param logger: the logger
+        :param nb_proc: the number of processes spawn in parallel
+        :param preserve: keep the intermediate files switch
+        :returns: None
+        :rtype:
+
         """
         self.conf = conf
         self.logger = logger
@@ -48,6 +56,11 @@ class DEFAULTGenerator:
     def composition(self, use_gv):
         """Generate composed files (model files containing the predicted
         node for the labels also not present in the training corpus)
+
+        :param use_gv: switch to activate the composition of the global variance models
+        :returns:None
+        :rtype:
+
         """
         # CMP
         thread_cmp = CMPComposition(self.conf,
@@ -86,6 +99,15 @@ class DEFAULTGenerator:
 
 
     def generate(self, out_path, gen_labfile_list_fname, use_gv):
+        """Parameter generation method.
+
+        :param out_path: the path where to store the parameters.
+        :param gen_labfile_list_fname: the name of the file containing the list of utt. to generate
+        :param use_gv: switch to use the variance global
+        :returns: None
+        :rtype:
+
+        """
 
         # Configuration part
         self.configuration_generator.generateTrainingConfiguration()

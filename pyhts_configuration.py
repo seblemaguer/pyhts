@@ -10,7 +10,8 @@ class Configuration(object):
     Configuration file to synthesize speech using python version of HTS
     """
     def __init__(self, args):
-        """
+        """ Initialize the configuration object based on the arguments args, the configuration file
+        specified in the arguments and  some default values
         """
 
         # Check some command imposed information
@@ -80,7 +81,7 @@ class Configuration(object):
 
 
     def parseConfig(self, config_fname):
-        """
+        """Extract configuration information from the configuration file indicated by config_fname
         """
         # Load config files
         conf = None

@@ -74,7 +74,7 @@ import generation
 ### Utils
 ################################################################################
 def copy_imposed_files(_in_path, _out_path, gen_labfile_base_lst, ext):
-    """
+    """Helper to copy the imposed files listed in gen_labfile_base_lst whose extension is ext from _in_path to _out_path
     """
     for base in gen_labfile_base_lst:
         logger.info("copy %s/%s.%s to %s/%s.%s" % (_in_path, base, ext, _out_path, base, ext))
@@ -82,7 +82,8 @@ def copy_imposed_files(_in_path, _out_path, gen_labfile_base_lst, ext):
                  "%s/%s.%s" %  (_out_path, base, ext))
 
 def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
-    """
+    """Helper to copy the imposed files listed in gen_labfile_base_lst whose extension is ext from _in_path to _out_path.
+    This helper is specific to F0 as the voicing mask of the F0 predicted by HTS is also applied.
     """
     for base in gen_labfile_base_lst:
         logger.info("copy %s/%s.%s to %s/%s.%s" % (_in_path, base, ext, _out_path, base, ext))
@@ -92,7 +93,7 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
         # Retrieve F0
         lf0 = np.fromfile("%s/%s.%s" % (_in_path, base, ext), dtype=np.float32)
         for i in range(0, min(lf0.size, mask.size)):
-            if mask[i] == -1e10:
+            if mask[i] == -1e10: # FIXME: only log supported for now
                 lf0[i] = mask[i]
 
         # Finally save the F0

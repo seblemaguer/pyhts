@@ -6,6 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Package which provides the classes needed to achieve the DNN generation using HTS
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -34,16 +35,24 @@ from generation.utils.dnnparamgeneration import *
 import tensorflow as tf
 import numpy
 
-###############################################################################
-# Functions
-###############################################################################
 class DNNGenerator(DEFAULTGenerator):
-    """
-    TODO:
+    """DNN generator. It is actually relying in a two stages process:
+           1. doing the default synthesis using HMM
+           2. generate the final parameters using the duration labels + the duration predicted by the HMM.
+
+        To achieve the first stage, we rely on the DEFAULTGenerator class.
     """
     def __init__(self, conf, out_handle, logger, nb_proc, preserve):
-        """
-        Constructor
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_handle: the handle to dump the standard output of the command
+        :param logger: the logger
+        :param nb_proc: the number of processes spawn in parallel
+        :param preserve: keep the intermediate files switch
+        :returns: None
+        :rtype:
+
         """
         self.conf = conf
         self.logger = logger
@@ -55,6 +64,12 @@ class DNNGenerator(DEFAULTGenerator):
 
 
     def generateConfigFile(self):
+        """Generate the configuration file needed by the DNN synthesis stage.
+
+        :returns: None
+        :rtype:
+
+        """
         input_dim = 0
         q_matcher = re.compile("^[^#].*$")
         qconf = '%s/DNN/qconf.conf' % self.conf.project_path
@@ -84,6 +99,13 @@ class DNNGenerator(DEFAULTGenerator):
             f.write(conf)
 
     def formatNumParameters(self, num_parameters):
+        """Helper to format in a human-readable way the number of parameters
+
+        :param num_parameters: the number of parameters
+        :returns: the number of parameters in a human-readable format
+        :rtype: string
+
+        """
         if num_parameters >= 1e+6:
             return '%.1f M' % (num_parameters / 1e+6)
         elif num_parameters >= 1e+3:
@@ -91,7 +113,16 @@ class DNNGenerator(DEFAULTGenerator):
         else:
             return num_parameters
 
-    def loadSession(self, model, config, stddev):
+    def loadSession(self, model_path, config, stddev):
+        """Loading the tensorflow session
+
+        :param model_path: the given model file path
+        :param config_path: the DNN specific configuration object
+        :param stddev: ???
+        :returns: the enriched DNN specific configuration object
+        :rtype:
+
+        """
 
         with tf.Graph().as_default():
             inputs, outputs = DNNDataIO.batched_data(config['num_io_units'], 1)
@@ -120,7 +151,7 @@ class DNNGenerator(DEFAULTGenerator):
 
             sess.run(init_op)
 
-            saver.restore(sess, model)
+            saver.restore(sess, model_path)
 
             config["session"] = sess
             config["inputs"] = inputs
@@ -132,11 +163,23 @@ class DNNGenerator(DEFAULTGenerator):
             return config
 
     def generate(self, out_path, gen_labfile_list_fname, use_gv):
+        """Parameter generation method.
+
+        :param out_path: the path where to store the parameters.
+        :param gen_labfile_list_fname: the name of the file containing the list of utt. to generate
+        :param use_gv: switch to use the variance global
+        :returns: None
+        :rtype:
+
+        """
 
         # Use the default HTS to get the duration
         DEFAULTGenerator.generate(self, out_path, gen_labfile_list_fname, use_gv)
 
-        # FIXME: wha
+
+        #########################################################################
+        ### Labels + duration => input feature vector
+        #########################################################################
         q = JoinableQueue()
         processes = []
         for base in range(self.nb_proc):
@@ -170,7 +213,7 @@ class DNNGenerator(DEFAULTGenerator):
             t.join()
 
         #########################################################################
-        ### DNN Part
+        ### Process the input vectors through the DNN
         #########################################################################
         # load the config file
         self.generateConfigFile()
@@ -207,12 +250,14 @@ class DNNGenerator(DEFAULTGenerator):
                 base = base.strip()
                 base = os.path.splitext(os.path.basename(base))[0]
 
-                t.process(base)
+                t.run(base)
 
         config["session"].close()
 
 
-        # FIXME: wha
+        #########################################################################
+        ### Output feature vector => acoustic parameters
+        #########################################################################
         q = JoinableQueue()
         processes = []
         for base in range(self.nb_proc):
