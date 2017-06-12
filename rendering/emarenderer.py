@@ -6,6 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Package containing the EMA renderer class
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -32,7 +33,21 @@ import numpy as np
 # Functions
 ###############################################################################
 class EMARenderer:
+    """Renderer for basic EMA. JSON formatted EMA and meshes (ply) are generated
+    """
     def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_handle: the handle where the standard output of subcommands is dumped
+        :param logger: the logger
+        :param nb_proc: the number of process to run
+        :param preserve: switch to preserve intermediate files or not
+        :returns: None
+        :rtype:
+
+        """
+
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
@@ -40,8 +55,13 @@ class EMARenderer:
         self.preserve = preserve
 
     def EMA2JSON(self, out_path, gen_labfile_base_lst):
-        """
-        Convert parameter to STRAIGHT params
+        """Convert binary EMA to JSON formatted EMA
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
         """
 
         # Convert duration to labels
@@ -65,8 +85,13 @@ class EMARenderer:
             t.join()
 
     def debug_part(self, out_path, gen_labfile_base_lst):
-        """
-        Generate PLY debug information
+        """Generate PLY debug information
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
         """
         list_processs = []
         for base in gen_labfile_base_lst:
@@ -84,10 +109,19 @@ class EMARenderer:
 
 
     def render(self, out_path, gen_labfile_base_lst):
+        """Rendering the EMA
 
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
+        """
+
+        # JSON conversion
         self.logger.info("EMA binary to JSON")
         self.EMA2JSON(out_path, gen_labfile_base_lst)
 
-
-        # self.logger.info("PLY rendering")
-        # self.debug_part(out_path, gen_labfile_base_lst)
+        # Debug
+        self.logger.info("PLY rendering")
+        self.debug_part(out_path, gen_labfile_base_lst)

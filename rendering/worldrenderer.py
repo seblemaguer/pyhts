@@ -7,6 +7,8 @@ AUTHOR
 
 DESCRIPTION
 
+    Package which contains the helper to achieve rendering based on WORLD (NOT WORKING YET!)
+
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
     Created: 10 October 2016

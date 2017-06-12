@@ -1,3 +1,18 @@
+"""
+AUTHOR
+    Alexander Hewer <ahewer@coli.uni-saarland.de>
+    Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
+
+DESCRIPTION
+    Package needed by blender to achieve the rendering of the tongue.
+    Based on https://wiki.blender.org/index.php/Dev:Py/Scripts/Cookbook/Code_snippets/Three_ways_to_create_objects
+
+LICENSE
+    This script is in the public domain, free from copyrights or restrictions.
+    Created: 28 November 2016
+"""
+
+
 import json
 import os
 
@@ -10,8 +25,6 @@ from mathutils import Vector
 
 # ATTENTION: make sure that the multilinearmodel module is accessible by blender
 import multilinearmodel
-
-# https://wiki.blender.org/index.php/Dev:Py/Scripts/Cookbook/Code_snippets/Three_ways_to_create_objects
 
 def createMeshFromData(name, origin, verts, faces):
     # Create mesh and object
@@ -75,8 +88,8 @@ frameNumber = -1
 # read base name of output files
 outputBase = os.getenv('output_file')
 
-output_frame_number= 0
 # iterate through the ema data frames
+output_frame_number= 0
 for frame in emaData:
     # increase frame number
     frameNumber += 1 # FIXME: hardcoded

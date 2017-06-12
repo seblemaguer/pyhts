@@ -6,7 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
-    Module which contains the generator used to produced the coefficients based on the labels and the HTS models.
+    Module which contains the generators used to produced the coefficients based on the labels and the HTS models.
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.

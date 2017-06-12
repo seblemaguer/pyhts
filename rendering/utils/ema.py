@@ -6,6 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Package containing helpers to EMA conversion
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -32,7 +33,19 @@ CHANNELS =  ["T3", "T2", "T1", "ref", "jaw", "upperlip", "lowerlip"]
 
 
 class EMAToJSON(Process):
+    """Helper class to convert binary EMA to JSON formatted EMA
+    """
     def __init__(self, conf, out_path, logger, queue):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_path: the output directory
+        :param logger: the logger
+        :param queue: the queue of utterance to deal with
+        :returns: None
+        :rtype:
+
+        """
         Process.__init__(self)
         self.logger = logger
         self.conf = conf
@@ -40,6 +53,13 @@ class EMAToJSON(Process):
         self.queue = queue
 
     def run(self):
+        """Achieve the conversion
+
+        :returns: None
+        :rtype:
+
+        """
+
         while True:
             base = self.queue.get()
             if base is None:
@@ -102,7 +122,20 @@ class EMAToJSON(Process):
 
 
 class JSONToEMA(Process):
+    """Helper class to convert JSON formatted EMA to binary EMA
+    """
     def __init__(self, conf, out_path, logger, queue):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_path: the output directory
+        :param logger: the logger
+        :param queue: the queue of utterance to deal with
+        :returns: None
+        :rtype:
+
+        """
+
         Process.__init__(self)
         self.logger = logger
         self.conf = conf
@@ -110,6 +143,12 @@ class JSONToEMA(Process):
         self.queue = queue
 
     def run(self):
+        """Achieve the conversion
+
+        :returns: None
+        :rtype:
+
+        """
 
         for cur_stream in self.conf.STREAMS:
             if (cur_stream["kind"] == "ema") or  (cur_stream["kind"] == "weight"):
@@ -144,7 +183,20 @@ class JSONToEMA(Process):
 
 
 class JSONtoPLY(Process):
+    """Helper class to convert JSON formatted EMA to meshes
+    """
     def __init__(self, conf, out_path, logger, queue):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_path: the output directory
+        :param logger: the logger
+        :param queue: the queue of utterance to deal with
+        :returns: None
+        :rtype:
+
+        """
+
         Process.__init__(self)
         self.logger = logger
         self.conf = conf
@@ -152,6 +204,13 @@ class JSONtoPLY(Process):
         self.queue = queue
 
     def run(self):
+        """Achieve the conversion
+
+        :returns: None
+        :rtype:
+
+        """
+
         while True:
             base = self.queue.get()
             if base is None:

@@ -7,6 +7,8 @@ AUTHOR
 
 DESCRIPTION
 
+    Package which contains the helper to render the EMA,video,... from the tongue weights
+
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
     Created: 10 October 2016
@@ -32,11 +34,23 @@ import numpy as np
 from rendering.utils.weights import *
 from rendering.utils.ema import *
 
-###############################################################################
-# Functions
-###############################################################################
+
 class WEIGHTRenderer:
+    """Rendering based on the tongue model weights
+    """
     def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_handle: the handle where the standard output of subcommands is dumped
+        :param logger: the logger
+        :param nb_proc: the number of process to run
+        :param preserve: switch to preserve intermediate files or not
+        :returns: None
+        :rtype:
+
+        """
+
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
@@ -44,6 +58,14 @@ class WEIGHTRenderer:
         self.preserve = preserve
 
     def generateWeightJSON(self, out_path, gen_labfile_base_lst):
+        """Convert the binary weights to JSON formatted weights
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
+        """
 
         # Convert duration to labels
         q = JoinableQueue()
@@ -69,6 +91,14 @@ class WEIGHTRenderer:
 
 
     def generateEMAFromWeights(self, out_path, gen_labfile_base_lst):
+        """Rendering EMA from the weights
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
+        """
 
         # Convert duration to labels
         q = JoinableQueue()
@@ -94,6 +124,14 @@ class WEIGHTRenderer:
 
 
     def convertEMAJSONToBinary(self, out_path, gen_labfile_base_lst):
+        """Convert JSON formatted EMA to binary EMA
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
+        """
 
         # Convert duration to labels
         q = JoinableQueue()
@@ -117,8 +155,18 @@ class WEIGHTRenderer:
         for t in processs:
             t.join()
 
-    # FIXME: not quite sure I can parallelize this one
     def videoRendering(self, gen_labfile_base_lst, model, out_path):
+        """Rendering tongue video using the given model and the predicted weights
+
+        FIXME: not quite sure I can parallelize this one
+
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :param model: the tongue shape model
+        :param out_path: the output directory path
+        :returns: None
+        :rtype:
+
+        """
         framerate = 25
         for base in gen_labfile_base_lst:
             self.logger.info("\trendering video for %s" % base)
@@ -140,6 +188,15 @@ class WEIGHTRenderer:
             shutil.rmtree(tmp_output_dir)
 
     def render(self, out_path, gen_labfile_base_lst):
+        """Rendering
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
+        """
+
         self.logger.info("Generate Weights json file")
         self.generateWeightJSON(out_path, gen_labfile_base_lst)
 

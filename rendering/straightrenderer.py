@@ -7,6 +7,8 @@ AUTHOR
 
 DESCRIPTION
 
+    Package which contains the STRAIGHT audio rendering
+
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
     Created: 10 October 2016
@@ -31,8 +33,20 @@ from rendering.utils.parameterconversion import ParameterConversion
 # Functions
 ###############################################################################
 class STRAIGHTRenderer:
-
+    """Renderer based on STRAIGHT to generate audio signal
+    """
     def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_handle: the handle where the standard output of subcommands is dumped
+        :param logger: the logger
+        :param nb_proc: the number of process to run
+        :param preserve: switch to preserve intermediate files or not
+        :returns: None
+        :rtype:
+
+        """
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
@@ -41,8 +55,15 @@ class STRAIGHTRenderer:
         self.MATLAB="matlab"
 
     def straight_part(self, out_path, gen_labfile_base_lst):
+        """Achieving the straight generation
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
         """
-        """
+
         # Generate STRAIGHT script
         with open(self.conf.STRAIGHT_SCRIPT, 'w') as f:
             # Header
@@ -116,8 +137,13 @@ class STRAIGHTRenderer:
 
 
     def parameter_conversion(self, out_path, gen_labfile_base_lst):
-        """
-        Convert parameter to STRAIGHT params
+        """Convert acoustic parameters to STRAIGHT compatible parameters
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
         """
 
         # Convert duration to labels
@@ -145,6 +171,14 @@ class STRAIGHTRenderer:
             t.join()
 
     def render(self, out_path, gen_labfile_base_lst):
+        """Rendering
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
+        """
         self.logger.info("Parameter conversion (could be quite long)")
         self.parameter_conversion(out_path, gen_labfile_base_lst)
 

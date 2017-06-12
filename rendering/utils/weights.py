@@ -6,6 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Tongue model weights utility package
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -28,7 +29,21 @@ from shutil import copyfile # For copying files
 
 
 class WeightsToJSON(Process):
+    """
+    Helper to conver binary weight to JSON formatted weight file
+    """
+
     def __init__(self, conf, out_path, logger, queue):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_path: the output directory
+        :param logger: the logger
+        :param queue: the queue of utterance to deal with
+        :returns: None
+        :rtype:
+
+        """
         Process.__init__(self)
         self.logger = logger
         self.conf = conf
@@ -36,6 +51,12 @@ class WeightsToJSON(Process):
         self.queue = queue
 
     def run(self):
+        """Achieve the conversion
+
+        :returns: None
+        :rtype:
+
+        """
         while True:
             base = self.queue.get()
 
@@ -104,7 +125,20 @@ class WeightsToJSON(Process):
 
 
 class WeightsToEMA(Process):
+    """Helper to convert the weights to the EMA JSON formatted file
+    """
+
     def __init__(self, conf, out_path, logger, queue):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_path: the output directory
+        :param logger: the logger
+        :param queue: the queue of utterance to deal with
+        :returns: None
+        :rtype:
+
+        """
         Process.__init__(self)
         self.logger = logger
         self.conf = conf
@@ -112,6 +146,12 @@ class WeightsToEMA(Process):
         self.queue = queue
 
     def run(self):
+        """Achieve the conversion
+
+        :returns: None
+        :rtype:
+
+        """
 
         while True:
             base = self.queue.get()

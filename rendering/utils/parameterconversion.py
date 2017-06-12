@@ -6,6 +6,7 @@ AUTHOR
     Sébastien Le Maguer <slemaguer@coli.uni-saarland.de>
 
 DESCRIPTION
+    Package for acoustic parameter rendering helpers
 
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
@@ -27,7 +28,21 @@ from multiprocessing import Process, Queue, JoinableQueue
 
 
 class ParameterConversion(Process):
+    """Helper to convert acoustic parameters to STRAIGHT compatible parameters
+    """
+
     def __init__(self, conf, out_path, logger, preserve, queue):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_path: the output directory
+        :param logger: the logger
+        :param preserve: switch to preserve or not intermediate files
+        :param queue: the queue of utterance to deal with
+        :returns: None
+        :rtype:
+
+        """
         Process.__init__(self)
         self.logger = logger
         self.conf = conf
@@ -40,6 +55,13 @@ class ParameterConversion(Process):
         self.queue = queue
 
     def run(self):
+        """Achieve the conversion
+
+        :returns: None
+        :rtype:
+
+        """
+
         while True:
             base = self.queue.get()
             if base is None:

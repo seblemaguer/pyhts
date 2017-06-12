@@ -7,6 +7,9 @@ AUTHOR
 
 DESCRIPTION
 
+    Module which contains the renderers used to produced the "final product"
+    (audio, video, ...) based on the parameters produced by the generator.
+
 LICENSE
     This script is in the public domain, free from copyrights or restrictions.
     Created: 10 October 2016
