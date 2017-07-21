@@ -14,6 +14,8 @@ class Configuration(object):
         specified in the arguments and  some default values
         """
 
+        self.PYHTS_PATH = os.path.dirname(os.path.realpath(__file__))
+
         # Check some command imposed information
         self.generator = args["--generator"]
         self.renderer = args["--renderer"]

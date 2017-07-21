@@ -177,7 +177,7 @@ class GVComposition(Process):
         """
         Process.__init__(self)
         self.conf = conf
-        self.gv_dir = gv_dir
+        self.gv_path = _gv_path
         self.out_handle = out_handle
         self.logger = logger
 
@@ -195,7 +195,7 @@ class GVComposition(Process):
             # Load trees
             f.write('// Load trees\n')
             for cur_stream in self.conf.STREAMS:
-                f.write('LT "%s/%s.inf"\n\n' % (self.gv_dir, cur_stream["kind"]))
+                f.write('LT "%s/%s.inf"\n\n' % (self.gv_path, cur_stream["kind"]))
 
             # Make unseen
             f.write('// Make unseen\n')
@@ -216,6 +216,6 @@ class GVComposition(Process):
 
         self.logger.info("Global variance unseen model building")
         cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
-            (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.gv_dir+'/clustered.mmf', self.conf.TMP_GV_MMF, self.conf.GV_HED_UNSEEN_BASE+'.hed',
-             self.gv_dir+'/gv.list')
+            (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.gv_path+'/clustered.mmf', self.conf.TMP_GV_MMF, self.conf.GV_HED_UNSEEN_BASE+'.hed',
+             self.gv_path+'/gv.list')
         subprocess.call(cmd.split(), stdout=self.out_handle)

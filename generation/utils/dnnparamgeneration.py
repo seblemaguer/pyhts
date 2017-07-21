@@ -53,7 +53,7 @@ class DNNParamPreparation(Process):
         """
 
         Process.__init__(self)
-        self.conf = user_config
+        self.conf = conf
         self.frameshift = frameshift
         self.out_path = out_path
         self.out_handle = out_handle
@@ -119,8 +119,8 @@ class DNNParamPreparation(Process):
 
         """
         config_path = self.conf.project_path + "/DNN/qconf.conf"
-        cmd = "perl utils/makefeature.pl %s %d %s | x2x +af > %s" % \
-          (config_path, self.frameshift, input_lab_path, output_ffi_path)
+        cmd = "perl %s/utils/makefeature.pl %s %d %s | x2x +af > %s" % \
+          (self.conf.PYHTS_PATH, config_path, self.frameshift, input_lab_path, output_ffi_path)
 
         wrapped_cmd = ["bash", "-c", cmd]
         subprocess.call(wrapped_cmd)
@@ -166,7 +166,7 @@ class DNNParamGeneration():
         :rtype:
 
         """
-        self.conf = user_config
+        self.conf = conf
         self.dnn_config = dnn_config
         self.frameshift = frameshift
         self.out_path = out_path
