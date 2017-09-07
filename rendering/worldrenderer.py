@@ -116,7 +116,7 @@ class WORLDRenderer:
         q = JoinableQueue()
         threads = []
         for base in range(self.nb_proc):
-            t = WORLDThread(self.conf, out_path, self.out_handle, self.logger, self.preserve, queue)
+            t = WORLDThread(self.conf, out_path, self.out_handle, self.logger, self.preserve, q)
             t.start()
             threads.append(t)
 
@@ -151,7 +151,7 @@ class WORLDRenderer:
         q = JoinableQueue()
         processs = []
         for base in range(self.nb_proc):
-            t = ParameterConversion(self.conf, out_path, self.logger, self.preserve, q)
+            t = ParameterConversion(self.conf, out_path, self.logger, self.preserve, q, True)
             t.start()
             processs.append(t)
 

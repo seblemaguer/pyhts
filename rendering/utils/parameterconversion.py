@@ -31,7 +31,7 @@ class ParameterConversion(Process):
     """Helper to convert acoustic parameters to STRAIGHT compatible parameters
     """
 
-    def __init__(self, conf, out_path, logger, preserve, queue):
+    def __init__(self, conf, out_path, logger, preserve, queue, keep_bap=False):
         """Constructor
 
         :param conf: the configuration object
@@ -53,6 +53,7 @@ class ParameterConversion(Process):
         self.MGC2SP = "mgc2sp"
 
         self.queue = queue
+        self.keep_bap = keep_bap
 
     def run(self):
         """Achieve the conversion
@@ -76,8 +77,12 @@ class ParameterConversion(Process):
                     with open('%s/%s.f0' % (self.out_path, base), 'w') as f:
                         subprocess.call(cmd.split(), stdout=f)
                 elif cur_stream["kind"] == "bap":
-                    cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
-                      (self.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self.out_path, base)
+                    if not self.keep_bap:
+                        cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
+                              (self.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self.out_path, base)
+                    else:
+                        cmd = 'cat %s/%.bap' % (self.out_path, base)
+
                     with open('%s/%s.ap' % (self.out_path, base), 'w') as f:
                         subprocess.call(cmd.split(), stdout=f)
                 elif cur_stream["kind"] == "mgc":
