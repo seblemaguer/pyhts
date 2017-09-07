@@ -25,7 +25,7 @@ import re
 import logging
 
 from threading import Thread
-
+from multiprocessing import Process, Queue, JoinableQueue
 from shutil import copyfile # For copying files
 
 from rendering.utils.parameterconversion import ParameterConversion
@@ -89,9 +89,22 @@ class WORLDThread(Thread):
 ###############################################################################
 # Functions
 ###############################################################################
-class WORLDRenderer:
 
+class WorldRenderer:
+    """Renderer based on STRAIGHT to generate audio signal
+    """
     def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+        """Constructor
+
+        :param conf: the configuration object
+        :param out_handle: the handle where the standard output of subcommands is dumped
+        :param logger: the logger
+        :param nb_proc: the number of process to run
+        :param preserve: switch to preserve intermediate files or not
+        :returns: None
+        :rtype:
+
+        """
         self.conf = conf
         self.logger = logger
         self.out_handle = out_handle
@@ -100,7 +113,7 @@ class WORLDRenderer:
 
     def world_part(self, out_path, gen_labfile_base_lst):
         # Convert duration to labels
-        q = queue.Queue()
+        q = JoinableQueue()
         threads = []
         for base in range(self.nb_proc):
             t = WORLDThread(self.conf, out_path, self.out_handle, self.logger, self.preserve, queue)
@@ -124,18 +137,23 @@ class WORLDRenderer:
             t.join()
 
 
-
     def parameter_conversion(self, out_path, gen_labfile_base_lst):
+        """Convert acoustic parameters to STRAIGHT compatible parameters
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
         """
-        Convert parameter to WORLD params
-        """
+
         # Convert duration to labels
-        q = queue.Queue()
-        threads = []
+        q = JoinableQueue()
+        processs = []
         for base in range(self.nb_proc):
             t = ParameterConversion(self.conf, out_path, self.logger, self.preserve, q)
             t.start()
-            threads.append(t)
+            processs.append(t)
 
         for base in gen_labfile_base_lst:
             base = base.strip()
@@ -147,14 +165,21 @@ class WORLDRenderer:
         q.join()
 
         # stop workers
-        for i in range(len(threads)):
+        for i in range(len(processs)):
             q.put(None)
 
-        for t in threads:
+        for t in processs:
             t.join()
 
-
     def render(self, out_path, gen_labfile_base_lst):
+        """Rendering
+
+        :param out_path: the output directory path
+        :param gen_labfile_base_lst: the file containing the list of utterances
+        :returns: None
+        :rtype:
+
+        """
         self.logger.info("Parameter conversion (could be quite long)")
         self.parameter_conversion(out_path, gen_labfile_base_lst)
 
