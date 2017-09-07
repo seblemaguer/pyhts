@@ -1,4 +1,5 @@
-# pyhts
+# python HTS wrapper (pyHTS)
+
 This set of scripts aims to easily use HTS to achieve synthesis. It currently supports:
   - Modeling:
       - HMM
@@ -40,3 +41,7 @@ Options:
   -F F0 --impose_f0_dir=F0                        F0 directory to use at the synthesis level.
   -I INT_F0 --impose_interpolated_f0_dir=INT_F0   interpolated F0 directory to use at the synthesis level.
 ```
+
+## TODO
+
+see <todo.org>
