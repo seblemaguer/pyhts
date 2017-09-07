@@ -90,7 +90,7 @@ class WORLDThread(Thread):
 # Functions
 ###############################################################################
 
-class WorldRenderer:
+class WORLDRenderer:
     """Renderer based on STRAIGHT to generate audio signal
     """
     def __init__(self, conf, out_handle, logger, nb_proc, preserve):
