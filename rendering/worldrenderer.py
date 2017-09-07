@@ -30,7 +30,6 @@ from shutil import copyfile # For copying files
 
 from rendering.utils.parameterconversion import ParameterConversion
 
-
 class WORLDThread(Thread):
     def __init__(self, conf, out_path, out_handle, logger, preserve, queue):
         Thread.__init__(self)
@@ -48,6 +47,7 @@ class WORLDThread(Thread):
                 break
 
             samplerate = str(self.conf.SIGNAL['samplerate'])
+            fft_size = 2048 # FIXME: hard coded for now
             frameshift = str(self.conf.SIGNAL['frameshift'])
             wav_fname = os.path.join(self.out_path, base + ".wav")
 
@@ -69,10 +69,10 @@ class WORLDThread(Thread):
                 subprocess.call(cmd, stdout=f)
 
             with open(dap_fname, "w") as f:
-                cmd = ["bash" , "-c", "cat " + ap_fname + " | sopr -d 32768.0 -P  | sopr -d 1500 | sopr -m 1200 | x2x +fd" ]
+                cmd = ["x2x", "+fd", ap_fname]
                 subprocess.call(cmd, stdout=f)
 
-            cmd = ["world_synthesis", "-s", samplerate, "-f", frameshift, df0_fname, dsp_fname, dap_fname, wav_fname]
+            cmd = ["synth", fft_size, samplerate, df0_fname, dsp_fname, dap_fname, wav_fname]
             subprocess.call(cmd, stdout=self.out_handle)
 
             if not self.preserve:
@@ -84,6 +84,7 @@ class WORLDThread(Thread):
                 os.remove(dsp_fname)
 
             self.queue.task_done()
+
 
 ###############################################################################
 # Functions
