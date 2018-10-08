@@ -19,6 +19,7 @@ class Configuration(object):
         # Check some command imposed information
         self.generator = args["--generator"]
         self.renderer = args["--renderer"]
+        self.STRAIGHT_PATH = args["--straight_path"]  # FIXME: optional
 
         # Start of everything:  the project path and the config
         self.project_path = os.path.dirname(args["--config"])
@@ -138,11 +139,5 @@ class Configuration(object):
         self.GV["slnt"] = conf["gv"]["silences"]
         self.GV["use"] = conf["gv"]["use"]
         self.GV["cdgv"] = conf["gv"]["cdgv"]
-
-        # Add pathes
-        self.PROJECT_DIR = conf["data"]["project_dir"]
-
-        if ("path" in conf) and ("straight" in conf["path"]):
-            self.STRAIGHT_PATH = conf["path"]["straight"]
 
         return conf

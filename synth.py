@@ -5,7 +5,7 @@
                    [--nb_proc=NB_PROC] [--preserve] [--imposed_duration]
                    [--renderer RENDERER] [--generator GENERATOR]
                    [--impose_f0_dir=F0] [--impose_mgc_dir=MGC] [--impose_bap_dir=BAP]
-                   [--impose_interpolated_f0_dir=INT_F0]
+                   [--impose_interpolated_f0_dir=INT_F0] [--straight_path=STRAIGHT]
                    <input> <output>
 
 Arguments:
@@ -27,6 +27,7 @@ Options:
   -B BAP --impose_bap_dir=BAP                     BAP directory to use at the synthesis level.
   -F F0 --impose_f0_dir=F0                        F0 directory to use at the synthesis level.
   -I INT_F0 --impose_interpolated_f0_dir=INT_F0   interpolated F0 directory to use at the synthesis level.
+  -S STRAIGHT --straight_path=STRAIGHT            the path of the straight scripts
 
 DESCRIPTION
 
