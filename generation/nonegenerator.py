@@ -55,11 +55,11 @@ class NONEGenerator:
         self.preserve = preserve
         self.configuration_generator = ConfigurationGenerator(conf, logger)
 
-    def generate(self, out_path, gen_labfile_list_fname, use_gv):
+    def generate(self, in_path, out_path, gen_labfile_base_lst, use_gv):
         """Parameter generation method. In this case it doesn't do anything.
 
         :param out_path: the path where to store the parameters.
-        :param gen_labfile_list_fname: the name of the file containing the list of utt. to generate
+        :param gen_labfile_base_lst: the list of utt. to generate
         :param use_gv: switch to use the variance global
         :returns: None
         :rtype:

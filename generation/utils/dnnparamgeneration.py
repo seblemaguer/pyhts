@@ -247,7 +247,6 @@ class DNNParamGeneration():
 
         self.logger.info("starting DNN generation for %s" % base)
 
-
         # Prediction of the ffo
         self.forward(self.dnn_config,
                      "%s/%s.ffi" % (self.out_path, base),

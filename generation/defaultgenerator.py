@@ -64,20 +64,20 @@ class DEFAULTGenerator:
         """
         # CMP
         thread_cmp = CMPComposition(self.conf,
-                                        self.conf.hts_file_pathes["cmp_tree"],
-                                        self.conf.hts_file_pathes["cmp_model"],
-                                        self.conf.hts_file_pathes["full_list"],
-                                        self.logger, self.out_handle)
+                                    self.conf.hts_file_pathes["cmp_tree"],
+                                    self.conf.hts_file_pathes["cmp_model"],
+                                    self.conf.hts_file_pathes["full_list"],
+                                    self.logger, self.out_handle)
         thread_cmp.start()
         if self.nb_proc == 1:
             thread_cmp.join()
 
         # DUR
         thread_dur = DURComposition(self.conf,
-                                        self.conf.hts_file_pathes["dur_tree"],
-                                        self.conf.hts_file_pathes["dur_model"],
-                                        self.conf.hts_file_pathes["full_list"],
-                                        self.logger, self.out_handle)
+                                    self.conf.hts_file_pathes["dur_tree"],
+                                    self.conf.hts_file_pathes["dur_model"],
+                                    self.conf.hts_file_pathes["full_list"],
+                                    self.logger, self.out_handle)
         thread_dur.start()
         if self.nb_proc == 1:
             thread_dur.join()
@@ -86,8 +86,8 @@ class DEFAULTGenerator:
         # GV
         if use_gv:
             thread_gv = GVComposition(self.conf,
-                                          self.conf.hts_file_pathes["gv"],
-                                          self.logger, self.out_handle)
+                                      self.conf.hts_file_pathes["gv"],
+                                      self.logger, self.out_handle)
             thread_gv.start()
             thread_gv.join()
 
@@ -98,11 +98,11 @@ class DEFAULTGenerator:
 
 
 
-    def generate(self, out_path, gen_labfile_list_fname, use_gv):
+    def generate(self, in_path, out_path, gen_labfile_base_lst, use_gv):
         """Parameter generation method.
 
         :param out_path: the path where to store the parameters.
-        :param gen_labfile_list_fname: the name of the file containing the list of utt. to generate
+        :param gen_labfile_base_lst: the list of utt. to generate
         :param use_gv: switch to use the variance global
         :returns: None
         :rtype:
@@ -116,15 +116,33 @@ class DEFAULTGenerator:
         # Model part
         self.composition(use_gv)
 
-        # Parameter generation
-        self.logger.info("Parameter generation")
-        cmd = "%s " % self.conf.HMGenS
-        if self.conf.imposed_duration:
-            cmd += "-m "
+        # Generate directory set
+        dir_dict = {}
+        for f in gen_labfile_base_lst:
+            f = "%s.lab" % f
+            parent = os.path.dirname(f)
+            if parent not in dir_dict:
+                dir_dict[parent] = []
 
-        cmd += '-A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
-          (self.conf.SYNTH_CONFIG, gen_labfile_list_fname,
-               self.conf.MODELLING["beam"], int(self.conf.pg_type), self.conf.TMP_CMP_MMF, self.conf.TMP_DUR_MMF,
-               out_path, self.conf.TYPE_TIED_LIST_BASE+'_cmp', self.conf.TYPE_TIED_LIST_BASE+'_dur')
+            dir_dict[parent].append(f)
 
-        subprocess.call(cmd.split(), stdout=self.out_handle)
+        # Parameter generation (per directory !)
+        for k, v in dir_dict.items():
+            os.makedirs("%s/%s" % (out_path, k), exist_ok=True)
+            with open(self.conf.TMP_GEN_LABFILE_LIST_FNAME, "w") as f_lab:
+                for f in v:
+                    f_lab.write("%s/%s\n" % (in_path, f))
+
+            # gen_labfile_base_lst
+            self.logger.info("Parameter generation")
+
+            cmd = "%s " % self.conf.HMGenS
+            if self.conf.imposed_duration:
+                cmd += "-m "
+
+            cmd += '-A -B -C %s -D -T 1 -S %s -t %s -c %d -H %s -N %s -M %s %s %s' % \
+                (self.conf.SYNTH_CONFIG, self.conf.TMP_GEN_LABFILE_LIST_FNAME,
+                 self.conf.MODELLING["beam"], int(self.conf.pg_type), self.conf.TMP_CMP_MMF, self.conf.TMP_DUR_MMF,
+                 "%s/%s" % (out_path, k), self.conf.TYPE_TIED_LIST_BASE+'_cmp', self.conf.TYPE_TIED_LIST_BASE+'_dur')
+
+            subprocess.call(cmd.split(), stdout=self.out_handle)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 
-"""Usage: synth.py [-h] [-v] (--config=CONFIG) [--input_is_list] [--pg_type=PG_TYPE]
+"""Usage: synth.py [-h] [-v] (--config=CONFIG) [--pg_type=PG_TYPE]
                    [--nb_proc=NB_PROC] [--preserve] [--imposed_duration]
                    [--renderer RENDERER] [--generator GENERATOR]
                    [--impose_f0_dir=F0] [--impose_mgc_dir=MGC] [--impose_bap_dir=BAP]
@@ -16,7 +16,6 @@ Options:
   -h --help                                       Show this help message and exit.
   -v --verbose                                    Verbose output.
   -c CONFIG --config=CONFIG                       Configuration file.
-  -s --input_is_list                              the input is a scp formatted file.
   -p PG_TYPE --pg_type=PG_TYPE                    parameter generation type [default: 0].
   -P NB_PROC --nb_proc=NB_PROC                    Activate parallel mode [default: 1].
   -r --preserve                                   not delete the intermediate and temporary files.
@@ -93,9 +92,9 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
 
         # Retrieve F0
         lf0 = np.fromfile("%s/%s.%s" % (_in_path, base, ext), dtype=np.float32)
-        for i in range(0, min(lf0.size, mask.size)):
-            if mask[i] == -1e10: # FIXME: only log supported for now
-                lf0[i] = mask[i]
+        # for i in range(0, min(lf0.size, mask.size)):
+        #     if mask[i] == -1e10: # FIXME: only log supported for now
+        #         lf0[i] = mask[i]
 
         # Finally save the F0
         lf0.tofile("%s/%s.%s" % (_out_path, base, ext))
@@ -104,7 +103,7 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
 ################################################################################
 ### Config + script functions
 ################################################################################
-def generate_label_list(conf, input_label_list):
+def generate_label_list(conf, in_path, input_label_list):
     """
     Generate the label list file to get it through the tree
     """
@@ -113,7 +112,7 @@ def generate_label_list(conf, input_label_list):
 
     # Fullcontext list (Training + generation)
     for input_label in input_label_list:
-        with open(input_label) as lab_file:
+        with open("%s/%s.lab" % (in_path, input_label)) as lab_file:
             for line in lab_file:
                 line = line.strip()
                 m = pattern.match(line)
@@ -161,8 +160,8 @@ def main():
 
     conf = Configuration(args)
 
-
     # Out directory
+    in_path = args["<input>"]
     out_path = os.path.join(conf.CWD_PATH, args["<output>"])
 
     # Create output directory if none, else pass
@@ -172,26 +171,20 @@ def main():
         pass
 
     # 0. Generate list file
-    gen_labfile_list_fname = conf.TMP_GEN_LABFILE_LIST_FNAME
-    if args["--input_is_list"]:
-        gen_labfile_list_fname = args["<input>"]
-    else:
-        with open(gen_labfile_list_fname, 'w') as f:
-            f.write(args["<input>"] + '\n')
-
     gen_labfile_base_lst = []
-    gen_labfile_lst = []
-    with open(gen_labfile_list_fname) as f:
-        for line in f:
-            gen_labfile_lst.append(line.strip())
-            gen_labfile_base_lst.append(os.path.splitext(os.path.basename(line.strip()))[0])
-
-    generate_label_list(conf, gen_labfile_lst)
+    for r, d, f in os.walk(in_path):
+        for file in f:
+            if '.lab' in file:
+                tmp = os.path.join(r, file).replace(".lab", "").replace(in_path, "")
+                tmp = re.sub(r"^/", "", tmp)
+                gen_labfile_base_lst.append(tmp)
+    if conf.generator.upper() != "NONE":
+        generate_label_list(conf, in_path, gen_labfile_base_lst)
 
     # Parameter generation
     parameter_generator = generation.generateGenerator(conf, out_handle, logger,
                                                        int(args["--nb_proc"]), args["--preserve"])
-    parameter_generator.generate(out_path, gen_labfile_list_fname, conf.use_gv)
+    parameter_generator.generate(in_path, out_path, gen_labfile_base_lst, conf.use_gv)
 
     # 5. Convert/adapt parameters
     if args["--impose_f0_dir"] and args["--impose_interpolated_f0_dir"]:
@@ -211,11 +204,11 @@ def main():
     # 6. Call straight to synthesize
     renderer = rendering.generateRenderer(conf, out_handle, logger,
                                           int(args["--nb_proc"]), args["--preserve"])
-    renderer.render(out_path, gen_labfile_base_lst)
+    renderer.render(in_path, out_path, gen_labfile_base_lst)
 
 
-    if not args["--preserve"]:
-        shutil.rmtree(conf.TMP_PATH)
+    # if not args["--preserve"]:
+    #     shutil.rmtree(conf.TMP_PATH)
 
 ################################################################################
 ### Enveloping

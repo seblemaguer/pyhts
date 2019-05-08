@@ -162,11 +162,11 @@ class DNNGenerator(DEFAULTGenerator):
 
             return config
 
-    def generate(self, out_path, gen_labfile_list_fname, use_gv):
+    def generate(self, in_path, out_path, gen_labfile_base_lst, use_gv):
         """Parameter generation method.
 
         :param out_path: the path where to store the parameters.
-        :param gen_labfile_list_fname: the name of the file containing the list of utt. to generate
+        :param gen_labfile_base_lst: the name of the file containing the list of utt. to generate
         :param use_gv: switch to use the variance global
         :returns: None
         :rtype:
@@ -174,8 +174,7 @@ class DNNGenerator(DEFAULTGenerator):
         """
 
         # Use the default HTS to get the duration
-        DEFAULTGenerator.generate(self, out_path, gen_labfile_list_fname, use_gv)
-
+        DEFAULTGenerator.generate(self, in_path, out_path, gen_labfile_base_lst, use_gv)
 
         #########################################################################
         ### Labels + duration => input feature vector
@@ -184,25 +183,21 @@ class DNNGenerator(DEFAULTGenerator):
         processes = []
         for base in range(self.nb_proc):
             t = DNNParamPreparation(self.conf,
-                                   self.frameshift, out_path,
-                                   self.logger, self.out_handle, self.preserve,
-                                   q)
+                                    self.frameshift, out_path,
+                                    self.logger, self.out_handle, self.preserve,
+                                    q)
             t.start()
             processes.append(t)
 
 
         # Fill the queue for the workers
-        with open(gen_labfile_list_fname) as f:
-            for base in f.readlines():
-                base = base.strip()
-                base = os.path.splitext(os.path.basename(base))[0]
+        for base in gen_labfile_base_lst:
+            # First some cleaning
+            for cmp in self.conf.conf["models"]["cmp"]["streams"]:
+                kind = cmp["kind"]
+                os.remove("%s/%s.%s" % (out_path, base, kind))
 
-                # First some cleaning
-                for cmp in self.conf.conf["models"]["cmp"]["streams"]:
-                    kind = cmp["kind"]
-                    os.remove("%s/%s.%s" % (out_path, base, kind))
-
-                q.put(base)
+            q.put(base)
 
         # Fill the queue by adding a None to indicate the end
         for i in range(len(processes)):
@@ -238,19 +233,15 @@ class DNNGenerator(DEFAULTGenerator):
         config = self.loadSession(model, config, stddev)
 
 
-        # FIXME: wha
+        # FIXME: what?
         t = DNNParamGeneration(self.conf, config,
                                self.frameshift, out_path,
                                self.logger, self.out_handle, self.preserve)
 
 
-        # Fill the queue for the workers
-        with open(gen_labfile_list_fname) as f:
-            for base in f.readlines():
-                base = base.strip()
-                base = os.path.splitext(os.path.basename(base))[0]
-
-                t.run(base)
+        #
+        for base in gen_labfile_base_lst:
+            t.run(base)
 
         config["session"].close()
 
@@ -268,14 +259,9 @@ class DNNGenerator(DEFAULTGenerator):
             t.start()
             processes.append(t)
 
-
         # Fill the queue for the workers
-        with open(gen_labfile_list_fname) as f:
-            for base in f.readlines():
-                base = base.strip()
-                base = os.path.splitext(os.path.basename(base))[0]
-
-                q.put(base)
+        for base in gen_labfile_base_lst:
+            q.put(base)
 
         # Fill the queue by adding a None to indicate the end
         for i in range(len(processes)):
@@ -284,3 +270,10 @@ class DNNGenerator(DEFAULTGenerator):
         # Wait the end of the processes
         for t in processes:
             t.join()
+
+
+        if not self.preserve:
+            for base in gen_labfile_base_lst:
+                os.remove('%s/%s.lab' % (out_path, base))
+                os.remove('%s/%s.ffi' % (out_path, base))
+                os.remove('%s/%s.ffo' % (out_path, base))

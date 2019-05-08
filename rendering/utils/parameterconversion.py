@@ -92,10 +92,12 @@ class ParameterConversion(Process):
                         subprocess.call(cmd.split(), stdout=f)
 
             if not self.preserve:
-                for cur_stream in self.conf.STREAMS:
-                    os.remove('%s/%s.%s' % (self.out_path, base, cur_stream["kind"]))
-                os.remove('%s/%s.dur' % (self.out_path, base))
-
+                try:
+                    for cur_stream in self.conf.STREAMS:
+                        os.remove('%s/%s.%s' % (self.out_path, base, cur_stream["kind"]))
+                    os.remove('%s/%s.dur' % (self.out_path, base))
+                except FileNotFoundError:
+                    pass
 
             self.queue.task_done()
 # parameterconversion.py ends here

@@ -54,7 +54,7 @@ class STRAIGHTRenderer:
         self.preserve = preserve
         self.MATLAB="matlab"
 
-    def straight_part(self, out_path, gen_labfile_base_lst):
+    def straight_part(self, in_path, out_path, gen_labfile_base_lst):
         """Achieving the straight generation
 
         :param out_path: the output directory path
@@ -77,7 +77,8 @@ class STRAIGHTRenderer:
             f.write("samplerate = %d;\n" % self.conf.SIGNAL["samplerate"])
             f.write("basenames = {};\n")
             for i in range(1, len(gen_labfile_base_lst)+1):
-                f.write("basenames{%d} = '%s';\n" % (i, gen_labfile_base_lst[i-1]))
+                base = gen_labfile_base_lst[i-1]
+                f.write("basenames{%d} = '%s';\n" % (i, base))
             f.write("\n")
 
             f.write("nb_frames = [];\n")
@@ -129,14 +130,14 @@ class STRAIGHTRenderer:
 
         if not self.preserve:
             os.remove(self.conf.STRAIGHT_SCRIPT)
-            for base in gen_labfile_base_lst:
-                os.remove('%s/%s.sp' % (out_path, base))
-                os.remove('%s/%s.ap' % (out_path, base))
-                os.remove('%s/%s.f0' % (out_path, base))
+            # for base in gen_labfile_base_lst:
+                # os.remove('%s/%s.sp' % (out_path, base))
+                # os.remove('%s/%s.ap' % (out_path, base))
+                # os.remove('%s/%s.f0' % (out_path, base))
 
 
 
-    def parameter_conversion(self, out_path, gen_labfile_base_lst):
+    def parameter_conversion(self, in_path, out_path, gen_labfile_base_lst):
         """Convert acoustic parameters to STRAIGHT compatible parameters
 
         :param out_path: the output directory path
@@ -155,8 +156,6 @@ class STRAIGHTRenderer:
             processs.append(t)
 
         for base in gen_labfile_base_lst:
-            base = base.strip()
-            base = os.path.splitext(os.path.basename(base))[0]
             q.put(base)
 
 
@@ -170,7 +169,7 @@ class STRAIGHTRenderer:
         for t in processs:
             t.join()
 
-    def render(self, out_path, gen_labfile_base_lst):
+    def render(self, in_path, out_path, gen_labfile_base_lst):
         """Rendering
 
         :param out_path: the output directory path
@@ -180,7 +179,7 @@ class STRAIGHTRenderer:
 
         """
         self.logger.info("Parameter conversion (could be quite long)")
-        self.parameter_conversion(out_path, gen_labfile_base_lst)
+        self.parameter_conversion(in_path, out_path, gen_labfile_base_lst)
 
         self.logger.info("Audio rendering (could be quite long)")
-        self.straight_part(out_path, gen_labfile_base_lst)
+        self.straight_part(in_path, out_path, gen_labfile_base_lst)
