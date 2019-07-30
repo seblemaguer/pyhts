@@ -14,37 +14,28 @@ LICENSE
 """
 
 import os
-import sys
 import numpy as np
-import time
 import subprocess       # Shell command calling
 import re
 import logging
-import shutil
 
 # Multi process
 from multiprocessing import Process, Queue, JoinableQueue
 
-from shutil import copyfile # For copying files
-
 import generation.dnn.DNNDataIO as DNNDataIO
 import generation.dnn.DNNDefine as DNNDefine
-
-import tensorflow as tf
 
 class DNNParamPreparation(Process):
     """Helper class to prepare the DNN input feature vectors considering the given labels, the
     duration produced by HTS and a given configuration
     """
 
-    def __init__(self, conf, frameshift, out_path, logger, out_handle, preserve, queue):
+    def __init__(self, conf, frameshift, out_path, preserve, queue):
         """Constructor
 
         :param conf: the user configuration object
         :param frameshift: the default frameshift
         :param out_path: path of the directory which is going to contain the input feature vector files
-        :param logger: the logger
-        :param out_handle: the handle to redirect the standard output of a command
         :param preserve: switch to not delete intermediate produced files
         :param queue: the queue which is going to contains the basenames of the files to deal with
         :returns: None
@@ -56,8 +47,7 @@ class DNNParamPreparation(Process):
         self.conf = conf
         self.frameshift = frameshift
         self.out_path = out_path
-        self.out_handle = out_handle
-        self.logger = logger
+        self.logger = logging.getLogger("DNNParamPreparation")
         self.preserve = preserve
         self.queue = queue
 
@@ -153,14 +143,12 @@ class DNNParamPreparation(Process):
 class DNNParamGeneration():
     """Helper to achieve the DNN parameter generation
     """
-    def __init__(self, conf, dnn_config, frameshift, out_path, logger, out_handle, preserve):
+    def __init__(self, conf, dnn_config, frameshift, out_path, preserve):
         """Constructor
 
         :param conf: the user configuration object
         :param frameshift: the default frameshift
         :param out_path: path of the directory which is going to contain the input feature vector files
-        :param logger: the logger
-        :param out_handle: the handle to redirect the standard output of a command
         :param preserve: switch to not delete intermediate produced files
         :returns: None
         :rtype:
@@ -170,8 +158,7 @@ class DNNParamGeneration():
         self.dnn_config = dnn_config
         self.frameshift = frameshift
         self.out_path = out_path
-        self.out_handle = out_handle
-        self.logger = logger
+        self.logger = logging.getLogger("DNNParamGeneration")
         self.preserve = preserve
 
 
@@ -219,7 +206,6 @@ class DNNParamGeneration():
         predicted_outputs = config["predicted_outputs"]
         cost_op = config["cost_op"]
 
-        start_time = time.time()
         for j in range(num_examples):
             feed_dict = self.fillFeedDict(
                 forward_data, 1.0,
@@ -257,14 +243,12 @@ class DNNParamGeneration():
 class DNNParamExtraction(Process):
     """Helper to extract the acoustic parameters from the output features
     """
-    def __init__(self, conf, frameshift, out_path, logger, out_handle, preserve, queue):
+    def __init__(self, conf, frameshift, out_path, preserve, queue):
         """Constructor
 
         :param conf: the user configuration object
         :param frameshift: the default frameshift
         :param out_path: path of the directory which is going to contain the input feature vector files
-        :param logger: the logger
-        :param out_handle: the handle to redirect the standard output of a command
         :param preserve: switch to not delete intermediate produced files
         :param queue: the queue which is going to contains the basenames of the files to deal with
         :returns: None
@@ -275,8 +259,7 @@ class DNNParamExtraction(Process):
         self.conf = conf
         self.frameshift = frameshift
         self.out_path = out_path
-        self.out_handle = out_handle
-        self.logger = logger
+        self.logger = logging.getLogger("DNNParamExtraction")
         self.preserve = preserve
         self.queue = queue
 

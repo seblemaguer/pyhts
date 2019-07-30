@@ -14,19 +14,17 @@ LICENSE
     Created:  7 January 2017
 """
 
-import os
-import sys
-
-import time
 import subprocess       # Shell command calling
-import re
 import logging
-import shutil
 
 
-from multiprocessing import Process, Queue, JoinableQueue
-from shutil import copyfile # For copying files
+from multiprocessing import Process
 
+import shlex
+from subprocess import Popen
+from subprocess import CalledProcessError
+
+from utils import run_shell_command
 
 ################################################################################
 ### Model composition Processs
@@ -36,15 +34,13 @@ class CMPComposition(Process):
     This class is a process to be able to be run in parallel.
     """
 
-    def __init__(self, conf, _cmp_tree_path, cmp_model_fpath, full_list_fpath, logger, out_handle):
+    def __init__(self, conf, _cmp_tree_path, cmp_model_fpath, full_list_fpath):
         """ Constructor
 
         :param conf: the configuration object
         :param _cmp_tree_path: the path of the decision tree file
         :param cmp_model_fpath: the path of the model file
         :param full_list_fpath: the path of the file containing the list of needed labels
-        :param logger: the logger
-        :param out_handle: the handle to dump the standard output of the command
         :returns: None
         :rtype:
 
@@ -54,8 +50,7 @@ class CMPComposition(Process):
         self._cmp_tree_path = _cmp_tree_path
         self.cmp_model_fpath = cmp_model_fpath
         self.full_list_fpath = full_list_fpath
-        self.out_handle = out_handle
-        self.logger = logger
+        self.logger = logging.getLogger("CMPComposition")
 
     def mk_unseen_script(self):
         """Generate the HHEd script which contains the command to generate an adapted model file
@@ -93,7 +88,7 @@ class CMPComposition(Process):
         self.logger.info("CMP unseen model building")
         cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
               (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.cmp_model_fpath, self.conf.TMP_CMP_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_cmp.hed', self.full_list_fpath)
-        subprocess.call(cmd.split(), stdout=self.out_handle)
+        run_shell_command(cmd, self.logger)
 
 
 class DURComposition(Process):
@@ -101,15 +96,13 @@ class DURComposition(Process):
     This class is a process to be able to be run in parallel.
     """
 
-    def __init__(self, conf, _dur_tree_path, dur_model_fpath, full_list_fpath, logger, out_handle):
+    def __init__(self, conf, _dur_tree_path, dur_model_fpath, full_list_fpath):
         """ Constructor
 
         :param conf: the configuration object
         :param _dur_tree_path: the path of the decision tree file
         :param dur_model_fpath: the path of the model file
         :param full_list_fpath: the path of the file containing the list of needed labels
-        :param logger: the logger
-        :param out_handle: the handle to dump the standard output of the command
         :returns: None
         :rtype:
 
@@ -119,8 +112,7 @@ class DURComposition(Process):
         self._dur_tree_path = _dur_tree_path
         self.dur_model_fpath = dur_model_fpath
         self.full_list_fpath = full_list_fpath
-        self.out_handle = out_handle
-        self.logger = logger
+        self.logger = logging.getLogger("DURComposition")
 
     def mk_unseen_script(self):
         """Generate the HHEd script which contains the command to generate an adapted model file
@@ -157,20 +149,18 @@ class DURComposition(Process):
         self.logger.info("Duration unseen model building")
         cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
               (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.dur_model_fpath, self.conf.TMP_DUR_MMF, self.conf.TYPE_HED_UNSEEN_BASE+'_dur.hed', self.full_list_fpath)
-        subprocess.call(cmd.split(), stdout=self.out_handle)
+        run_shell_command(cmd, self.logger)
 
 class GVComposition(Process):
     """ Class to generate the global variance.
     This class is a process to be able to be run in parallel.
     """
 
-    def __init__(self, conf, _gv_path, logger,out_handle):
+    def __init__(self, conf, _gv_path):
         """ Constructor
 
         :param conf: the configuration object
         :param _gv_path: the path of the directory containing all the needed files for the GV stage
-        :param logger: the logger
-        :param out_handle: the handle to dump the standard output of the command
         :returns: None
         :rtype:
 
@@ -178,8 +168,7 @@ class GVComposition(Process):
         Process.__init__(self)
         self.conf = conf
         self.gv_path = _gv_path
-        self.out_handle = out_handle
-        self.logger = logger
+        self.logger = logging.getLogger("GVComposition")
 
     def mk_unseen_script(self):
         """Generate the HHEd script which contains the command to generate an adapted model file
@@ -218,4 +207,4 @@ class GVComposition(Process):
         cmd = '%s -A -B -C %s -D -T 1 -p -i -H %s -w %s %s %s' % \
             (self.conf.HHEd, self.conf.TRAIN_CONFIG, self.gv_path+'/clustered.mmf', self.conf.TMP_GV_MMF, self.conf.GV_HED_UNSEEN_BASE+'.hed',
              self.gv_path+'/gv.list')
-        subprocess.call(cmd.split(), stdout=self.out_handle)
+        run_shell_command(cmd, self.logger)

@@ -24,17 +24,18 @@ import subprocess       # Shell command calling
 import re
 import logging
 
-from threading import Thread
 from multiprocessing import Process, Queue, JoinableQueue
 from shutil import copyfile # For copying files
 
+
+import subprocess       # Shell command calling
+
 from rendering.utils.parameterconversion import ParameterConversion
 
-class WORLDThread(Thread):
-    def __init__(self, conf, out_path, out_handle, logger, preserve, queue):
-        Thread.__init__(self)
-        self.logger = logger
-        self.out_handle = out_handle
+class WORLDProcess(Process):
+    def __init__(self, conf, out_path, preserve, queue):
+        Process.__init__(self)
+        self.logger = logging.getLogger("WORLDProcess")
         self.conf = conf
         self.out_path = out_path
         self.preserve = preserve
@@ -114,11 +115,11 @@ class WORLDRenderer:
     def world_part(self, out_path, gen_labfile_base_lst):
         # Convert duration to labels
         q = JoinableQueue()
-        threads = []
+        processes = []
         for base in range(self.nb_proc):
-            t = WORLDThread(self.conf, out_path, self.out_handle, self.logger, self.preserve, q)
+            t = WORLDProcess(self.conf, out_path, self.preserve, q)
             t.start()
-            threads.append(t)
+            processes.append(t)
 
         for base in gen_labfile_base_lst:
             base = base.strip()
@@ -130,10 +131,10 @@ class WORLDRenderer:
         q.join()
 
         # stop workers
-        for i in range(len(threads)):
+        for i in range(len(processes)):
             q.put(None)
 
-        for t in threads:
+        for t in processes:
             t.join()
 
 

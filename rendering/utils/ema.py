@@ -13,20 +13,12 @@ LICENSE
     Created: 10 October 2016
 """
 
-import sys
-import os
-import traceback
-import argparse
-import time
 import logging
 import subprocess
 import numpy as np
 import json
 
-
-from multiprocessing import Process, Queue, JoinableQueue
-
-from shutil import copyfile # For copying files
+from multiprocessing import Process
 
 
 CHANNELS =  ["T3", "T2", "T1", "ref", "jaw", "upperlip", "lowerlip"]
@@ -35,19 +27,18 @@ CHANNELS =  ["T3", "T2", "T1", "ref", "jaw", "upperlip", "lowerlip"]
 class EMAToJSON(Process):
     """Helper class to convert binary EMA to JSON formatted EMA
     """
-    def __init__(self, conf, out_path, logger, queue):
+    def __init__(self, conf, out_path, queue):
         """Constructor
 
         :param conf: the configuration object
         :param out_path: the output directory
-        :param logger: the logger
         :param queue: the queue of utterance to deal with
         :returns: None
         :rtype:
 
         """
         Process.__init__(self)
-        self.logger = logger
+        self.logger = logging.getLogger("EMAToJSON")
         self.conf = conf
         self.out_path = out_path
         self.queue = queue
@@ -124,12 +115,11 @@ class EMAToJSON(Process):
 class JSONToEMA(Process):
     """Helper class to convert JSON formatted EMA to binary EMA
     """
-    def __init__(self, conf, out_path, logger, queue):
+    def __init__(self, conf, out_path, queue):
         """Constructor
 
         :param conf: the configuration object
         :param out_path: the output directory
-        :param logger: the logger
         :param queue: the queue of utterance to deal with
         :returns: None
         :rtype:
@@ -137,7 +127,7 @@ class JSONToEMA(Process):
         """
 
         Process.__init__(self)
-        self.logger = logger
+        self.logger = logging.getLogger("JSONToEMA")
         self.conf = conf
         self.out_path = out_path
         self.queue = queue

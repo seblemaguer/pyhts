@@ -35,12 +35,10 @@ import numpy as np
 class EMARenderer:
     """Renderer for basic EMA. JSON formatted EMA and meshes (ply) are generated
     """
-    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+    def __init__(self, conf,  nb_proc, preserve):
         """Constructor
 
         :param conf: the configuration object
-        :param out_handle: the handle where the standard output of subcommands is dumped
-        :param logger: the logger
         :param nb_proc: the number of process to run
         :param preserve: switch to preserve intermediate files or not
         :returns: None
@@ -49,8 +47,7 @@ class EMARenderer:
         """
 
         self.conf = conf
-        self.logger = logger
-        self.out_handle = out_handle
+        self.logger = logging.getLogger("EMARenderer")
         self.nb_proc = nb_proc
         self.preserve = preserve
 

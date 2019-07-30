@@ -17,17 +17,17 @@ class Configuration(object):
         self.PYHTS_PATH = os.path.dirname(os.path.realpath(__file__))
 
         # Check some command imposed information
-        self.generator = args["--generator"]
-        self.renderer = args["--renderer"]
-        self.STRAIGHT_PATH = args["--straight_path"]  # FIXME: optional
+        self.generator = args.generator
+        self.renderer = args.renderer
+        self.STRAIGHT_PATH = args.straight_path  # FIXME: optional
 
         # Start of everything:  the project path and the config
-        self.project_path = os.path.dirname(args["--config"])
-        self.conf = self.parseConfig(args["--config"])
+        self.project_path = os.path.dirname(args.config)
+        self.conf = self.parseConfig(args.config)
 
         # HTS options
-        self.pg_type = int(args["--pg_type"])
-        self.imposed_duration = args["--imposed_duration"]
+        self.pg_type = int(args.pg_type)
+        self.imposed_duration = args.imposed_duration
         self.use_gv = False
         if (os.path.isdir(os.path.join(self.project_path, "gv"))):
             self.use_gv = True

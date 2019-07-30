@@ -14,24 +14,16 @@ LICENSE
 """
 
 import os
-import sys
-import traceback
-import argparse as ap
-
-import time
 import subprocess       # Shell command calling
-import re
 import logging
-
-
-from multiprocessing import Process, Queue, JoinableQueue
+from multiprocessing import Process
 
 
 class ParameterConversion(Process):
     """Helper to convert acoustic parameters to STRAIGHT compatible parameters
     """
 
-    def __init__(self, conf, out_path, logger, preserve, queue, keep_bap=False):
+    def __init__(self, conf, out_path, preserve, queue, keep_bap=False):
         """Constructor
 
         :param conf: the configuration object
@@ -44,7 +36,7 @@ class ParameterConversion(Process):
 
         """
         Process.__init__(self)
-        self.logger = logger
+        self.logger = logging.getLogger("ParameterConversion")
         self.conf = conf
         self.out_path = out_path
         self.preserve = preserve

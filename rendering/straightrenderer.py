@@ -15,19 +15,13 @@ LICENSE
 """
 
 import os
-import sys
-import traceback
-import argparse as ap
-
-import time
-import subprocess       # Shell command calling
-import re
 import logging
 
-from multiprocessing import Process, Queue, JoinableQueue
-from shutil import copyfile # For copying files
+from multiprocessing import JoinableQueue
 
 from rendering.utils.parameterconversion import ParameterConversion
+
+from utils import run_shell_command
 
 ###############################################################################
 # Functions
@@ -35,7 +29,7 @@ from rendering.utils.parameterconversion import ParameterConversion
 class STRAIGHTRenderer:
     """Renderer based on STRAIGHT to generate audio signal
     """
-    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+    def __init__(self, conf, nb_proc, preserve):
         """Constructor
 
         :param conf: the configuration object
@@ -48,8 +42,7 @@ class STRAIGHTRenderer:
 
         """
         self.conf = conf
-        self.logger = logger
-        self.out_handle = out_handle
+        self.logger = logging.getLogger("STRAIGHTRenderer")
         self.nb_proc = nb_proc
         self.preserve = preserve
         self.MATLAB="matlab"
@@ -126,7 +119,7 @@ class STRAIGHTRenderer:
 
         # Synthesis!
         cmd = '%s -nojvm -nosplash -nodisplay < %s' % (self.MATLAB, self.conf.STRAIGHT_SCRIPT)
-        subprocess.call(cmd.split(), stdout=self.out_handle)
+        run_shell_command(cmd, self.logger)
 
         if not self.preserve:
             os.remove(self.conf.STRAIGHT_SCRIPT)
@@ -151,7 +144,7 @@ class STRAIGHTRenderer:
         q = JoinableQueue()
         processs = []
         for base in range(self.nb_proc):
-            t = ParameterConversion(self.conf, out_path, self.logger, self.preserve, q)
+            t = ParameterConversion(self.conf, out_path, self.preserve, q)
             t.start()
             processs.append(t)
 

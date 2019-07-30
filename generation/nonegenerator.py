@@ -13,22 +13,8 @@ LICENSE
     Created:  7 January 2017
 """
 
-import os
-import sys
-import traceback
-import argparse as ap
-
-import time
-import subprocess       # Shell command calling
-import re
 import logging
-
-from threading import Thread
-
-from shutil import copyfile # For copying files
-
-from generation.utils.composition import *
-from generation.utils.configuration import *
+from generation.utils.configuration import ConfigurationGenerator
 
 class NONEGenerator:
     """Generator which is not doing anything.
@@ -36,7 +22,7 @@ class NONEGenerator:
     It is used to desactivate the generation part and go directly to the
     rendering part
     """
-    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+    def __init__(self, conf, nb_proc, preserve):
         """Constructor
 
         :param conf: the configuration object
@@ -49,11 +35,10 @@ class NONEGenerator:
 
         """
         self.conf = conf
-        self.logger = logger
-        self.out_handle = out_handle
+        self.logger = logging.getLogger("NONEGenerator")
         self.nb_proc = nb_proc
         self.preserve = preserve
-        self.configuration_generator = ConfigurationGenerator(conf, logger)
+        self.configuration_generator = ConfigurationGenerator(conf)
 
     def generate(self, in_path, out_path, gen_labfile_base_lst, use_gv):
         """Parameter generation method. In this case it doesn't do anything.

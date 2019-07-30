@@ -17,11 +17,11 @@ from generation.nonegenerator import *
 from generation.defaultgenerator import *
 from generation.dnngenerator import *
 
-def generateGenerator(conf, out_handle, logger, is_parallel=False, preserve=False):
+def generateGenerator(conf, is_parallel=False, preserve=False):
     """Helper to instanciate the accurate generator based on the given configuration object conf.
     out_handle, logger, is_parallel and preserve are the arguments of the constructor of the generator.
     """
     try:
-        return globals()[conf.generator.upper() + "Generator"](conf, out_handle, logger, is_parallel, preserve)
+        return globals()[conf.generator.upper() + "Generator"](conf, is_parallel, preserve)
     except KeyError:
         raise Exception("Acoustic generator " + conf.generator.upper() + "Generator" + " unknown")

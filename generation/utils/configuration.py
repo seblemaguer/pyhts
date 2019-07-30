@@ -16,22 +16,21 @@ LICENSE
 
 import os
 import shutil
-
+import logging
 
 class ConfigurationGenerator:
     """HMGenS-like synthesis configuration helper
     """
-    def __init__(self, conf, logger):
+    def __init__(self, conf):
         """Constructor
 
         :param conf: the configuration object
-        :param logger: the logger
         :returns: None
         :rtype:
 
         """
         self.conf = conf
-        self.logger = logger
+        self.logger = logging.getLogger("ConfigurationGenerator")
 
 
     def generateTrainingConfiguration(self):

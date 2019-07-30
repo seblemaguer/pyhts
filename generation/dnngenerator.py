@@ -42,7 +42,7 @@ class DNNGenerator(DEFAULTGenerator):
 
         To achieve the first stage, we rely on the DEFAULTGenerator class.
     """
-    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+    def __init__(self, conf,  nb_proc, preserve):
         """Constructor
 
         :param conf: the configuration object
@@ -56,10 +56,9 @@ class DNNGenerator(DEFAULTGenerator):
         """
         self.conf = conf
         self.logger = logger
-        self.out_handle = out_handle
         self.nb_proc = nb_proc
         self.preserve = preserve
-        self.configuration_generator = ConfigurationGenerator(conf, logger)
+        self.configuration_generator = ConfigurationGenerator(conf)
         self.frameshift = self.conf.frameshift * 10000 # frameshift ms * 10 000> frameshift in HTK unit (frameshift * 100ns)
 
 
@@ -184,8 +183,7 @@ class DNNGenerator(DEFAULTGenerator):
         for base in range(self.nb_proc):
             t = DNNParamPreparation(self.conf,
                                     self.frameshift, out_path,
-                                    self.logger, self.out_handle, self.preserve,
-                                    q)
+                                    self.preserve, q)
             t.start()
             processes.append(t)
 
@@ -236,7 +234,7 @@ class DNNGenerator(DEFAULTGenerator):
         # FIXME: what?
         t = DNNParamGeneration(self.conf, config,
                                self.frameshift, out_path,
-                               self.logger, self.out_handle, self.preserve)
+                               self.preserve)
 
 
         #
@@ -254,7 +252,7 @@ class DNNGenerator(DEFAULTGenerator):
         for base in range(self.nb_proc):
             t = DNNParamExtraction(self.conf,
                                    self.frameshift, out_path,
-                                   self.logger, self.out_handle, self.preserve, q)
+                                   self.preserve, q)
 
             t.start()
             processes.append(t)

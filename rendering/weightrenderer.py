@@ -15,22 +15,10 @@ LICENSE
 """
 
 import os
-import sys
-import traceback
-import argparse as ap
-
-import time
-import subprocess       # Shell command calling
-import re
 import logging
-
-from multiprocessing import Process, Queue, JoinableQueue
-
-from shutil import copyfile # For copying files
 import shutil
 
-import numpy as np
-
+from multiprocessing import JoinableQueue
 from rendering.utils.weights import *
 from rendering.utils.ema import *
 
@@ -38,12 +26,10 @@ from rendering.utils.ema import *
 class WEIGHTRenderer:
     """Rendering based on the tongue model weights
     """
-    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+    def __init__(self, conf, nb_proc, preserve):
         """Constructor
 
         :param conf: the configuration object
-        :param out_handle: the handle where the standard output of subcommands is dumped
-        :param logger: the logger
         :param nb_proc: the number of process to run
         :param preserve: switch to preserve intermediate files or not
         :returns: None
@@ -52,8 +38,7 @@ class WEIGHTRenderer:
         """
 
         self.conf = conf
-        self.logger = logger
-        self.out_handle = out_handle
+        self.logger = logging.getLogger("WEIGHTRenderer")
         self.nb_proc = nb_proc
         self.preserve = preserve
 
@@ -104,7 +89,7 @@ class WEIGHTRenderer:
         q = JoinableQueue()
         processs = []
         for base in range(self.nb_proc):
-            t = WeightsToEMA(self.conf, out_path, self.logger, q)
+            t = WeightsToEMA(self.conf, out_path, q)
             t.start()
             processs.append(t)
 
@@ -137,7 +122,7 @@ class WEIGHTRenderer:
         q = JoinableQueue()
         processs = []
         for base in range(self.nb_proc):
-            t = JSONToEMA(self.conf, out_path, self.logger, q)
+            t = JSONToEMA(self.conf, out_path, q)
             t.start()
             processs.append(t)
 

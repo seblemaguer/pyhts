@@ -1,85 +1,63 @@
 #!/usr/bin/env python3
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
+"""
+AUTHOR
 
-"""Usage: synth.py [-h] [-v] (--config=CONFIG) [--pg_type=PG_TYPE]
-                   [--nb_proc=NB_PROC] [--preserve] [--imposed_duration]
-                   [--renderer RENDERER] [--generator GENERATOR]
-                   [--impose_f0_dir=F0] [--impose_mgc_dir=MGC] [--impose_bap_dir=BAP]
-                   [--impose_interpolated_f0_dir=INT_F0] [--straight_path=STRAIGHT]
-                   <input> <output>
-
-Arguments:
-  input                                           the input file (label by default but can be a list of files)
-  output                                          the output directory
-
-Options:
-  -h --help                                       Show this help message and exit.
-  -v --verbose                                    Verbose output.
-  -c CONFIG --config=CONFIG                       Configuration file.
-  -p PG_TYPE --pg_type=PG_TYPE                    parameter generation type [default: 0].
-  -P NB_PROC --nb_proc=NB_PROC                    Activate parallel mode [default: 1].
-  -r --preserve                                   not delete the intermediate and temporary files.
-  -D --imposed_duration                           imposing the duration at a phone level.
-  -R RENDERER --renderer=RENDERER                 override the renderer
-  -G GENERATOR --generator=GENERATOR              override the generator
-  -M MGC --impose_mgc_dir=MGC                     MGC directory to use at the synthesis level.
-  -B BAP --impose_bap_dir=BAP                     BAP directory to use at the synthesis level.
-  -F F0 --impose_f0_dir=F0                        F0 directory to use at the synthesis level.
-  -I INT_F0 --impose_interpolated_f0_dir=INT_F0   interpolated F0 directory to use at the synthesis level.
-  -S STRAIGHT --straight_path=STRAIGHT            the path of the straight scripts
+    Sébastien Le Maguer <lemagues@tcd.ie>
 
 DESCRIPTION
 
-    **TODO** This describes how to use this script. This docstring
-        will be printed by the script if there is an error or
-        if the user requests help (-h or --help).
-
-EXIT STATUS
-
-    **TODO** List exit codes
-
-AUTHORS
-
-    Sébastien Le Maguer     <sebastien.le_maguer@irisa.fr>
-    Marc Evrard             <marc.evrard@limsi.fr>
-
 LICENSE
-
     This script is in the public domain, free from copyrights or restrictions.
-
-VERSION
-
-    $Id$
+    Created: 30 July 2019
 """
-from docopt import docopt
 
-import os
+# System/default
 import sys
-import traceback
-import argparse as ap
-
-import time
-import subprocess       # Shell command calling
-import re
-import logging
+import os
 import shutil
 
-from shutil import copyfile # For copying files
-from pyhts_configuration import Configuration
+# Arguments
+import argparse
+
+# Messaging/logging
+import traceback
+import time
+import logging
+
+# Regular expression
+import re
+
+# Math
 import numpy as np
+
+# Subpackages
+from pyhts_configuration import Configuration
 import rendering
 import generation
 
-################################################################################
-### Utils
-################################################################################
+# NOTE: get rid of stupid tensorflow warning
+import absl.logging
+logging.root.removeHandler(absl.logging._absl_handler)
+absl.logging._warn_preinit_stderr = False
+
+
+###############################################################################
+# global constants
+###############################################################################
+LEVEL = [logging.WARNING, logging.INFO, logging.DEBUG]
+
+###############################################################################
+# Functions
+###############################################################################
+
 def copy_imposed_files(_in_path, _out_path, gen_labfile_base_lst, ext):
     """Helper to copy the imposed files listed in gen_labfile_base_lst whose extension is ext from _in_path to _out_path
     """
     for base in gen_labfile_base_lst:
         logger.info("copy %s/%s.%s to %s/%s.%s" % (_in_path, base, ext, _out_path, base, ext))
-        copyfile("%s/%s.%s" % (_in_path, base, ext),
-                 "%s/%s.%s" %  (_out_path, base, ext))
+        shutil.copyfile("%s/%s.%s" % (_in_path, base, ext),
+                        "%s/%s.%s" %  (_out_path, base, ext))
 
 def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
     """Helper to copy the imposed files listed in gen_labfile_base_lst whose extension is ext from _in_path to _out_path.
@@ -92,17 +70,15 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
 
         # Retrieve F0
         lf0 = np.fromfile("%s/%s.%s" % (_in_path, base, ext), dtype=np.float32)
-        # for i in range(0, min(lf0.size, mask.size)):
-        #     if mask[i] == -1e10: # FIXME: only log supported for now
-        #         lf0[i] = mask[i]
+
+        # Applying mask!
+        for i in range(0, min(lf0.size, mask.size)):
+            if mask[i] == -1e10: # FIXME: only log supported for now
+                lf0[i] = mask[i]
 
         # Finally save the F0
         lf0.tofile("%s/%s.%s" % (_out_path, base, ext))
 
-
-################################################################################
-### Config + script functions
-################################################################################
 def generate_label_list(conf, in_path, input_label_list):
     """
     Generate the label list file to get it through the tree
@@ -125,44 +101,19 @@ def generate_label_list(conf, in_path, input_label_list):
     with open(conf.LABEL_LIST_FNAME, 'w') as list_file:
         list_file.write('\n'.join(full_set))
 
-def setup_logging(is_verbose):
-    """
-    Setup logging according to the verbose mode
-    """
-    logging.basicConfig(format='[%(asctime)s] %(levelname)s : %(message)s')
-
-    if not is_verbose:
-        level = logging.INFO
-    else:
-        level = logging.DEBUG
-
-    # handler = ColorizingStreamHandler(sys.stderr)
-    # root.setLevel(logging.DEBUG)
-    # if root.handlers:
-    #     for handler in root.handlers:
-    #         root.removeHandler(handler)
-    # formatter = logging.Formatter(datefmt='%Y/%m/%d %H:%M',
-    #                               fmt='[%(asctime)s %(name)s  %(levelname)s] %(message)s')
-    # handler.setFormatter(formatter)
-    # logging.getLogger().addHandler(handler)
-
-    _logger = logging.getLogger('EXTRACT_STRAIGHT')
-    _logger.setLevel(level)
-
-    return _logger
-
-
+###############################################################################
+# Main function
+###############################################################################
 def main():
+    """Main entry function
     """
-    Main entry function
-    """
-    global args, logger
+    global args
 
     conf = Configuration(args)
 
     # Out directory
-    in_path = args["<input>"]
-    out_path = os.path.join(conf.CWD_PATH, args["<output>"])
+    in_path = args.input
+    out_path = os.path.join(conf.CWD_PATH, args.output)
 
     # Create output directory if none, else pass
     try:
@@ -178,79 +129,127 @@ def main():
                 tmp = os.path.join(r, file).replace(".lab", "").replace(in_path, "")
                 tmp = re.sub(r"^/", "", tmp)
                 gen_labfile_base_lst.append(tmp)
+                logger.info("Add %s" % file)
     if conf.generator.upper() != "NONE":
         generate_label_list(conf, in_path, gen_labfile_base_lst)
 
     # Parameter generation
-    parameter_generator = generation.generateGenerator(conf, out_handle, logger,
-                                                       int(args["--nb_proc"]), args["--preserve"])
+    parameter_generator = generation.generateGenerator(conf, int(args.nb_proc), args.preserve)
     parameter_generator.generate(in_path, out_path, gen_labfile_base_lst, conf.use_gv)
 
     # 5. Convert/adapt parameters
-    if args["--impose_f0_dir"] and args["--impose_interpolated_f0_dir"]:
+    if (args.impose_f0_dir is not None) and (args.impose_interpolated_f0_dir  is not None):
         raise Exception("cannot impose 2 kind of F0 at the same time")
 
-    if args["--impose_f0_dir"]:
+    if args.impose_f0_dir is not None:
         logger.info("replace f0 using imposed one")
-        copy_imposed_files(args["--impose_f0_dir"], out_path, gen_labfile_base_lst, "lf0")
-    if args["--impose_interpolated_f0_dir"]:
+        copy_imposed_files(args.impose_f0_dir, out_path, gen_labfile_base_lst, "lf0")
+    if args.impose_interpolated_f0_dir is not None:
         logger.info("replace f0 using interpolated one")
-        adapt_f0_files(args["--impose_interpolated_f0_dir"], out_path, gen_labfile_base_lst, "lf0")
-    if args["--impose_bap_dir"]:
-        copy_imposed_file(args["--impose_mgc_dir"], out_path, gen_labfile_base_lst, "mgc")
-    if args["--impose_bap_dir"]:
-        copy_imposed_file(args["--impose_bap_dir"], out_path, gen_labfile_base_lst, "bap")
+        adapt_f0_files(args.impose_interpolated_f0_dir, out_path, gen_labfile_base_lst, "lf0")
+    if args.impose_bap_dir is not None:
+        copy_imposed_files(args.impose_mgc_dir, out_path, gen_labfile_base_lst, "mgc")
+    if args.impose_bap_dir is not None:
+        copy_imposed_files(args.impose_bap_dir, out_path, gen_labfile_base_lst, "bap")
 
     # 6. Call straight to synthesize
-    renderer = rendering.generateRenderer(conf, out_handle, logger,
-                                          int(args["--nb_proc"]), args["--preserve"])
+    renderer = rendering.generateRenderer(conf, int(args.nb_proc), args.preserve)
     renderer.render(in_path, out_path, gen_labfile_base_lst)
-
 
     # if not args["--preserve"]:
     #     shutil.rmtree(conf.TMP_PATH)
 
-################################################################################
-### Enveloping
-################################################################################
 
+###############################################################################
+#  Envelopping
+###############################################################################
 if __name__ == '__main__':
     try:
-        args = docopt(__doc__)
+        parser = argparse.ArgumentParser(description="")
 
-        # Debug time
-        logger = setup_logging(args["--verbose"])
-        if args["--verbose"]:
-            out_handle = sys.stdout
+        # Add options
+        parser.add_argument("-c", "--config", required=True,
+                            help="Configuration file")
+        parser.add_argument("-p", "--pg-type", default=0, type=int,
+                            help="The parameter generation type (0, 1 or 2!)")
+        parser.add_argument("-P", "--nb_proc", default=1, type=int,
+                            help="The number of parallel processes authorized")
+        parser.add_argument("-r", "--preserve", action="store_true",
+                            help="Preserve the intermediate and temporary files")
+        parser.add_argument("-D", "--imposed_duration", action="store_true",
+                            help="Impose the duration at the phone level. (duration should be in the input label file)")
+        parser.add_argument("-R", "--renderer", type=str, default=None,
+                            help="Override the configuration renderer")
+        parser.add_argument("-G", "--generator", type=str, default=None,
+                            help="Override the configuration generator")
+
+        parser.add_argument("-M", "--impose_mgc_dir", type=str, default=None,
+                            help="MGC directory to use at the rendering stage")
+        parser.add_argument("-B", "--impose_bap_dir", type=str, default=None,
+                            help="BAP directory to use at the rendering stage")
+        parser.add_argument("-F", "--impose_f0_dir", type=str, default=None,
+                            help="F0 directory to use at the rendering stage")
+        parser.add_argument("-I", "--impose_interpolated_f0_dir", type=str, default=None,
+                            help="Interpolated F0 directory to use at the rendering stage")
+
+        parser.add_argument("-S", "--straight_path", type=str, default=None,
+                            help="Overriding configuration path to the STRAIGHT toolkit")
+
+        parser.add_argument("-l", "--log_file", default=None, type=str,
+                            help="Logger file")
+        parser.add_argument("-v", "--verbosity", action="count", default=0,
+                            help="increase output verbosity")
+
+        # Add arguments
+        parser.add_argument("input", help="The input file/directory")
+        parser.add_argument("output", help="The output directory")
+
+        # Parsing arguments
+        args = parser.parse_args()
+
+        # create logger and formatter
+        logger = logging.getLogger()
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+        # Verbose level => logging level
+        log_level = args.verbosity
+        if (args.verbosity >= len(LEVEL)):
+            log_level = len(LEVEL) - 1
+            logger.setLevel(log_level)
+            logging.warning("verbosity level is too high, I'm gonna assume you're taking the highest (%d)" % log_level)
         else:
-            out_handle = subprocess.DEVNULL
+            logger.setLevel(LEVEL[log_level])
+
+        # create console handler
+        ch = logging.StreamHandler()
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+
+        # create file handler
+        if args.log_file is not None:
+            fh = logging.FileHandler(args.log_file)
+            logger.addHandler(fh)
 
         # Debug time
         start_time = time.time()
-        if args["--verbose"]:
-            logger.debug(time.asctime())
+        logger.info("start time = " + time.asctime())
 
         # Running main function <=> run application
         main()
 
         # Debug time
-        if args["--verbose"]:
-            logger.debug(time.asctime())
-        if args["--verbose"]:
-            logger.debug("TOTAL TIME IN MINUTES: %f" % ((time.time() - start_time) / 60.0))
+        logging.info("end time = " + time.asctime())
+        logging.info('TOTAL TIME IN MINUTES: %02.2f' %
+                     ((time.time() - start_time) / 60.0))
 
+        # Exit program
+        sys.exit(0)
     except KeyboardInterrupt as e:  # Ctrl-C
         raise e
-
-    except SystemExit as e:  # sys.exit()
-        print("ERROR, UNEXPECTED EXCEPTION")
-        print(str(e))
-        traceback.print_exc()
-        # os._exit(1)
-        sys.exit(1)
+    except SystemExit:  # sys.exit()
+        pass
     except Exception as e:
-        print("ERROR, UNEXPECTED EXCEPTION")
-        print(str(e))
-        traceback.print_exc()
-        # os._exit(1)
-        sys.exit(1)
+        logging.error('ERROR, UNEXPECTED EXCEPTION')
+        logging.error(str(e))
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(-1)

@@ -34,7 +34,7 @@ class DEFAULTGenerator:
     """Generator which is achieving the default HMGenS parameter generation
 
     """
-    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+    def __init__(self, conf, nb_proc, preserve):
         """Constructor
 
         :param conf: the configuration object
@@ -48,10 +48,9 @@ class DEFAULTGenerator:
         """
         self.conf = conf
         self.logger = logger
-        self.out_handle = out_handle
         self.nb_proc = nb_proc
         self.preserve = preserve
-        self.configuration_generator = ConfigurationGenerator(conf, logger)
+        self.configuration_generator = ConfigurationGenerator(conf)
 
     def composition(self, use_gv):
         """Generate composed files (model files containing the predicted
@@ -66,8 +65,7 @@ class DEFAULTGenerator:
         thread_cmp = CMPComposition(self.conf,
                                     self.conf.hts_file_pathes["cmp_tree"],
                                     self.conf.hts_file_pathes["cmp_model"],
-                                    self.conf.hts_file_pathes["full_list"],
-                                    self.logger, self.out_handle)
+                                    self.conf.hts_file_pathes["full_list"])
         thread_cmp.start()
         if self.nb_proc == 1:
             thread_cmp.join()
@@ -76,8 +74,7 @@ class DEFAULTGenerator:
         thread_dur = DURComposition(self.conf,
                                     self.conf.hts_file_pathes["dur_tree"],
                                     self.conf.hts_file_pathes["dur_model"],
-                                    self.conf.hts_file_pathes["full_list"],
-                                    self.logger, self.out_handle)
+                                    self.conf.hts_file_pathes["full_list"])
         thread_dur.start()
         if self.nb_proc == 1:
             thread_dur.join()

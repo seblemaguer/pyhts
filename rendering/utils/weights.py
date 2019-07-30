@@ -13,11 +13,6 @@ LICENSE
     Created: 28 November 2016
 """
 
-import sys
-import os
-import traceback
-import argparse
-import time
 import logging
 import subprocess
 import numpy as np
@@ -33,19 +28,18 @@ class WeightsToJSON(Process):
     Helper to conver binary weight to JSON formatted weight file
     """
 
-    def __init__(self, conf, out_path, logger, queue):
+    def __init__(self, conf, out_path, queue):
         """Constructor
 
         :param conf: the configuration object
         :param out_path: the output directory
-        :param logger: the logger
         :param queue: the queue of utterance to deal with
         :returns: None
         :rtype:
 
         """
         Process.__init__(self)
-        self.logger = logger
+        self.logger = logging.getLogger("WeightsToJSON")
         self.conf = conf
         self.out_path = out_path
         self.queue = queue
@@ -128,7 +122,7 @@ class WeightsToEMA(Process):
     """Helper to convert the weights to the EMA JSON formatted file
     """
 
-    def __init__(self, conf, out_path, logger, queue):
+    def __init__(self, conf, out_path, queue):
         """Constructor
 
         :param conf: the configuration object
@@ -140,7 +134,7 @@ class WeightsToEMA(Process):
 
         """
         Process.__init__(self)
-        self.logger = logger
+        self.logger = logging.getLogger("WeightsToEMA")
         self.conf = conf
         self.out_path = out_path
         self.queue = queue
