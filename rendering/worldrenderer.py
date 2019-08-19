@@ -110,7 +110,7 @@ class WORLDProcess(Process):
 class WORLDRenderer:
     """Renderer based on STRAIGHT to generate audio signal
     """
-    def __init__(self, conf, out_handle, logger, nb_proc, preserve):
+    def __init__(self, conf, nb_proc, preserve):
         """Constructor
 
         :param conf: the configuration object
@@ -123,12 +123,11 @@ class WORLDRenderer:
 
         """
         self.conf = conf
-        self.logger = logger
-        self.out_handle = out_handle
+        self.logger = logging.getLogger("WORLDRenderer")
         self.nb_proc = nb_proc
         self.preserve = preserve
 
-    def world_part(self, out_path, gen_labfile_base_lst):
+    def world_part(self, in_path, out_path, gen_labfile_base_lst):
         # Convert duration to labels
         q = JoinableQueue()
         processes = []
@@ -154,7 +153,7 @@ class WORLDRenderer:
             t.join()
 
 
-    def parameter_conversion(self, out_path, gen_labfile_base_lst):
+    def parameter_conversion(self, in_path, out_path, gen_labfile_base_lst):
         """Convert acoustic parameters to STRAIGHT compatible parameters
 
         :param out_path: the output directory path
@@ -168,7 +167,7 @@ class WORLDRenderer:
         q = JoinableQueue()
         processs = []
         for base in range(self.nb_proc):
-            t = ParameterConversion(self.conf, out_path, self.logger, self.preserve, q, True)
+            t = ParameterConversion(self.conf, out_path, self.preserve, q)
             t.start()
             processs.append(t)
 
@@ -188,7 +187,7 @@ class WORLDRenderer:
         for t in processs:
             t.join()
 
-    def render(self, out_path, gen_labfile_base_lst):
+    def render(self, in_path, out_path, gen_labfile_base_lst):
         """Rendering
 
         :param out_path: the output directory path
@@ -198,7 +197,7 @@ class WORLDRenderer:
 
         """
         self.logger.info("Parameter conversion (could be quite long)")
-        self.parameter_conversion(out_path, gen_labfile_base_lst)
+        self.parameter_conversion(in_path, out_path, gen_labfile_base_lst)
 
         self.logger.info("Audio rendering (could be quite long)")
-        self.world_part(out_path, gen_labfile_base_lst)
+        self.world_part(in_path, out_path, gen_labfile_base_lst)
