@@ -15,20 +15,16 @@ LICENSE
 """
 
 import os
-import sys
-import traceback
-import argparse as ap
 
-import time
-import subprocess       # Shell command calling
-import re
 import logging
 
-from multiprocessing import Process, Queue, JoinableQueue
-from shutil import copyfile # For copying files
+import numpy as np
+from scipy.interpolate import interp1d
+# from scipy.io import wavfile
+import pyworld as pw
+import soundfile as sf
 
-
-import subprocess       # Shell command calling
+from multiprocessing import Process, JoinableQueue
 
 from rendering.utils.parameterconversion import ParameterConversion
 
@@ -47,42 +43,62 @@ class WORLDProcess(Process):
             if base is None:
                 break
 
-            samplerate = str(self.conf.SIGNAL['samplerate'])
-            fft_size = 2048 # FIXME: hard coded for now
-            frameshift = str(self.conf.SIGNAL['frameshift'])
-            wav_fname = os.path.join(self.out_path, base + ".wav")
+            # Get some information
+            samplerate = int(self.conf.SIGNAL['samplerate'])
+            frameshift = int(self.conf.SIGNAL['frameshift'])
 
-            # First convert float to double
+            # F0
             f0_fname = os.path.join(self.out_path, base + ".f0")
+            f0 = np.fromfile(f0_fname, dtype=np.float32)
+
+            # Spectrum
             sp_fname = os.path.join(self.out_path, base + ".sp")
-            ap_fname = os.path.join(self.out_path, base + ".ap")
+            sp = np.fromfile(sp_fname, dtype=np.float32)
+            sp = sp.reshape((f0.shape[0], int(sp.shape[0]/f0.shape[0])))
+            sp = sp / 32768.0
+            sp = sp * sp
 
-            df0_fname = os.path.join(self.out_path, base + ".df0")
-            dsp_fname = os.path.join(self.out_path, base + ".dsp")
-            dap_fname = os.path.join(self.out_path, base + ".dap")
+            # Load band aperiodicity
+            bap_fname = os.path.join(self.out_path, base + ".ap")
+            bap = np.fromfile(bap_fname, dtype=np.float32)
+            nb_bap = int(bap.shape[0]/f0.shape[0])
+            bap = bap.reshape((f0.shape[0], nb_bap))
 
-            with open(df0_fname, "w") as f:
-                cmd = ["x2x", "+fd", f0_fname]
-                subprocess.call(cmd, stdout=f)
+            # Generate coarse ap
+            coarse_ap = np.zeros(shape=(f0.shape[0], nb_bap+2))
+            coarse_ap[0:f0.shape[0], 1:nb_bap+1] = bap
+            coarse_ap[0:f0.shape[0], 0] = np.ones((f0.shape[0])) * -60.0
+            coarse_ap[0:f0.shape[0], nb_bap+1] = 0.0
 
-            with open(dsp_fname, "w") as f:
-                cmd = ["bash" , "-c", "cat " + sp_fname + " | sopr -d 32768.0 -P  | x2x +fd" ]
-                subprocess.call(cmd, stdout=f)
+            # Generate coarse frequency
+            coarse_frequency_axis = np.arange(0, coarse_ap.shape[1], 1, dtype=np.double) * 3000.0 # kFrequencyInterval = 3000.0
+            coarse_frequency_axis[coarse_ap.shape[1]-1] = frameshift / 2.0
+            frequency_axis = np.arange(0, sp.shape[1], 1, dtype=np.double) * frameshift / ((sp.shape[1]-1)*2)
 
-            with open(dap_fname, "w") as f:
-                cmd = ["x2x", "+fd", ap_fname]
-                subprocess.call(cmd, stdout=f)
+            # Interpolate
+            ap = np.zeros(shape=sp.shape, dtype=np.float32)
+            for t in range(f0.shape[0]):
+                set_interp = interp1d(coarse_frequency_axis, coarse_ap[t])
+                ap[t] = set_interp(frequency_axis)
+                ap[t] = np.power(10.0, ap[t] / 20.0)
 
-            cmd = ["synth", fft_size, samplerate, df0_fname, dsp_fname, dap_fname, wav_fname]
-            subprocess.call(cmd, stdout=self.out_handle)
+            # Rendering the waveform
+            print(f0.astype(np.double))
+            y = pw.synthesize(f0.astype(np.double),
+                              sp.astype(np.double),
+                              ap.astype(np.double),
+                              samplerate);
+            print(y.shape)
+
+            # Save the waveform
+            wav_fname = os.path.join(self.out_path, base + ".wav")
+            # # wavfile.write(wav_fname, y, samplerate);
+            sf.write(wav_fname, y, samplerate)
 
             if not self.preserve:
                 os.remove(f0_fname)
                 os.remove(ap_fname)
                 os.remove(sp_fname)
-                os.remove(df0_fname)
-                os.remove(dap_fname)
-                os.remove(dsp_fname)
 
             self.queue.task_done()
 

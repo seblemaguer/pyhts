@@ -73,7 +73,7 @@ class ParameterConversion(Process):
                         cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
                               (self.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self.out_path, base)
                     else:
-                        cmd = 'cat %s/%.bap' % (self.out_path, base)
+                        cmd = 'cat %s/%s.bap' % (self.out_path, base)
 
                     with open('%s/%s.ap' % (self.out_path, base), 'w') as f:
                         subprocess.call(cmd.split(), stdout=f)

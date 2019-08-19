@@ -14,21 +14,14 @@ LICENSE
 """
 
 import os
-import sys
-import traceback
-import argparse as ap
 
-import time
 import subprocess       # Shell command calling
-import re
 import logging
-
-from threading import Thread
-
-from shutil import copyfile # For copying files
 
 from generation.utils.composition import *
 from generation.utils.configuration import *
+
+from utils import run_shell_command
 
 class DEFAULTGenerator:
     """Generator which is achieving the default HMGenS parameter generation
@@ -47,7 +40,7 @@ class DEFAULTGenerator:
 
         """
         self.conf = conf
-        self.logger = logger
+        self.logger = logging.getLogger("DEFAULTGenerator")
         self.nb_proc = nb_proc
         self.preserve = preserve
         self.configuration_generator = ConfigurationGenerator(conf)
@@ -83,8 +76,7 @@ class DEFAULTGenerator:
         # GV
         if use_gv:
             thread_gv = GVComposition(self.conf,
-                                      self.conf.hts_file_pathes["gv"],
-                                      self.logger, self.out_handle)
+                                      self.conf.hts_file_pathes["gv"])
             thread_gv.start()
             thread_gv.join()
 
@@ -142,4 +134,4 @@ class DEFAULTGenerator:
                  self.conf.MODELLING["beam"], int(self.conf.pg_type), self.conf.TMP_CMP_MMF, self.conf.TMP_DUR_MMF,
                  "%s/%s" % (out_path, k), self.conf.TYPE_TIED_LIST_BASE+'_cmp', self.conf.TYPE_TIED_LIST_BASE+'_dur')
 
-            subprocess.call(cmd.split(), stdout=self.out_handle)
+            run_shell_command(cmd, self.logger)

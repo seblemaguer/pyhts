@@ -14,16 +14,13 @@ LICENSE
 """
 
 import os
-import time
-import subprocess       # Shell command calling
 import re
-import glob
+
+import logging
 
 # Multi process
 # from multiprocessing import Process, Queue, JoinableQueue
 from queue import Queue as JoinableQueue
-
-from shutil import copyfile # For copying files
 
 from generation.utils.composition import *
 from generation.utils.configuration import *
@@ -55,7 +52,7 @@ class DNNGenerator(DEFAULTGenerator):
 
         """
         self.conf = conf
-        self.logger = logger
+        self.logger = logging.getLogger("DNNGenerator")
         self.nb_proc = nb_proc
         self.preserve = preserve
         self.configuration_generator = ConfigurationGenerator(conf)
