@@ -102,9 +102,6 @@ class STRAIGHTRenderer:
             f.write("\t\tfclose(fid_ap);\n")
             f.write("\t\tfclose(fid_f0);\n")
 
-            # Spectrum normalization    # FIXME (why ?) => not compatible with our corpus podalydes
-            f.write("\t\tsp = sp * %f;\n" % (1024.0 / (2200.0 * 32768.0)))
-
             # Synthesis process part 2
             f.write("\t\t[sy] = exstraightsynth(f0, sp, ap, samplerate, prm);\n")
             f.write("\t\taudiowrite(sprintf('%s/%s.wav', out_path, basenames{i}), sy, samplerate);\n")
