@@ -45,54 +45,30 @@ class WORLDProcess(Process):
 
             # Get some information
             samplerate = int(self.conf.SIGNAL['samplerate'])
-            frameshift = int(self.conf.SIGNAL['frameshift'])
+            frameshift = float(self.conf.SIGNAL['frameshift'])
 
             # F0
             f0_fname = os.path.join(self.out_path, base + ".f0")
             f0 = np.fromfile(f0_fname, dtype=np.float32)
+            f0 = f0.astype(np.float64)
+            nb_frames = f0.shape[0]
 
             # Spectrum
             sp_fname = os.path.join(self.out_path, base + ".sp")
             sp = np.fromfile(sp_fname, dtype=np.float32)
-            sp = sp.reshape((f0.shape[0], int(sp.shape[0]/f0.shape[0])))
-            sp = sp / 32768.0
-            sp = sp * sp
+            sp = sp.reshape((nb_frames, int(sp.shape[0]/nb_frames)))
+            sp = sp.astype(np.float64)
 
-            # Load band aperiodicity
-            bap_fname = os.path.join(self.out_path, base + ".ap")
-            bap = np.fromfile(bap_fname, dtype=np.float32)
-            nb_bap = int(bap.shape[0]/f0.shape[0])
-            bap = bap.reshape((f0.shape[0], nb_bap))
+            # Aperiodicity
+            ap_fname = os.path.join(self.out_path, base + ".ap")
+            ap = np.fromfile(ap_fname, dtype=np.float32)
+            ap = ap.reshape((nb_frames, int(ap.shape[0]/nb_frames)))
+            ap = ap.astype(np.float64)
 
-            # Generate coarse ap
-            coarse_ap = np.zeros(shape=(f0.shape[0], nb_bap+2))
-            coarse_ap[0:f0.shape[0], 1:nb_bap+1] = bap
-            coarse_ap[0:f0.shape[0], 0] = np.ones((f0.shape[0])) * -60.0
-            coarse_ap[0:f0.shape[0], nb_bap+1] = 0.0
-
-            # Generate coarse frequency
-            coarse_frequency_axis = np.arange(0, coarse_ap.shape[1], 1, dtype=np.double) * 3000.0 # kFrequencyInterval = 3000.0
-            coarse_frequency_axis[coarse_ap.shape[1]-1] = frameshift / 2.0
-            frequency_axis = np.arange(0, sp.shape[1], 1, dtype=np.double) * frameshift / ((sp.shape[1]-1)*2)
-
-            # Interpolate
-            ap = np.zeros(shape=sp.shape, dtype=np.float32)
-            for t in range(f0.shape[0]):
-                set_interp = interp1d(coarse_frequency_axis, coarse_ap[t])
-                ap[t] = set_interp(frequency_axis)
-                ap[t] = np.power(10.0, ap[t] / 20.0)
-
-            # Rendering the waveform
-            print(f0.astype(np.double))
-            y = pw.synthesize(f0.astype(np.double),
-                              sp.astype(np.double),
-                              ap.astype(np.double),
-                              samplerate);
-            print(y.shape)
+            y = pw.synthesize(f0, sp, ap, samplerate, frameshift);
 
             # Save the waveform
             wav_fname = os.path.join(self.out_path, base + ".wav")
-            # # wavfile.write(wav_fname, y, samplerate);
             sf.write(wav_fname, y, samplerate)
 
             if not self.preserve:
@@ -138,7 +114,7 @@ class WORLDRenderer:
 
         for base in gen_labfile_base_lst:
             base = base.strip()
-            base = os.path.splitext(os.path.basename(base))[0]
+            base = os.path.splitext(base)[0]
             q.put(base)
 
 
@@ -173,7 +149,7 @@ class WORLDRenderer:
 
         for base in gen_labfile_base_lst:
             base = base.strip()
-            base = os.path.splitext(os.path.basename(base))[0]
+            base = os.path.splitext(base)[0]
             q.put(base)
 
 

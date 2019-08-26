@@ -4,13 +4,13 @@ import shlex
 import subprocess
 
 def run_shell_command(command_line, logger):
-    command_line_args = shlex.split(command_line)
+    command_line_args = " ".join(shlex.split(command_line))
 
-    logger.info('Subprocess: "' + command_line + '"')
+    logger.info('Subprocess: "' + str(command_line_args) + '"')
 
     try:
         command_line_process = subprocess.Popen(
-            command_line_args,
+            ["sh", "-c", command_line_args],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )

@@ -18,6 +18,7 @@ import subprocess       # Shell command calling
 import logging
 from multiprocessing import Process
 
+import utils
 
 class ParameterConversion(Process):
     """Helper to convert acoustic parameters to STRAIGHT compatible parameters
@@ -64,24 +65,30 @@ class ParameterConversion(Process):
             for cur_stream in self.conf.STREAMS:
                 if cur_stream["kind"] == "lf0":
                     # lf0 => f0
-                    cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0' % \
-                      (self.SOPR, self.out_path, base)
-                    with open('%s/%s.f0' % (self.out_path, base), 'w') as f:
-                        subprocess.call(cmd.split(), stdout=f)
-                elif cur_stream["kind"] == "bap":
-                    if not self.keep_bap:
-                        cmd = '%s -a %f -g 0 -m %d -l 2048 -o 0 %s/%s.bap' % \
-                              (self.MGC2SP, self.conf.FREQWARPING, cur_stream["order"], self.out_path, base)
-                    else:
-                        cmd = 'cat %s/%s.bap' % (self.out_path, base)
+                    f0_fn = '%s/%s.f0' % (self.out_path, base)
+                    cmd = '%s -magic -1.0E+10 -EXP -MAGIC 0.0 %s/%s.lf0 > %s' % \
+                      (self.SOPR, self.out_path, base, f0_fn)
 
-                    with open('%s/%s.ap' % (self.out_path, base), 'w') as f:
-                        subprocess.call(cmd.split(), stdout=f)
+                    utils.run_shell_command(cmd, self.logger)
+                elif cur_stream["kind"] == "bap":
+                    ap_fn = '%s/%s.ap' % (self.out_path, base)
+
+                    if not self.keep_bap:
+                        cmd = '%s -a %f -g 0 -m %d -l 2048 -o 2 %s/%s.bap | %s -d 32768.0 -P > %s' % \
+                              (self.MGC2SP, self.conf.FREQWARPING, cur_stream["order"],
+                               self.out_path, base, self.SOPR, ap_fn)
+                    else:
+                        cmd = 'cat %s/%s.bap > %s' % (self.out_path, base, ap_fn)
+
+                    utils.run_shell_command(cmd, self.logger)
                 elif cur_stream["kind"] == "mgc":
-                    cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc' % \
-                      (self.MGC2SP, self.conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"], self.out_path, base)
-                    with open('%s/%s.sp' % (self.out_path, base), 'w') as f:
-                        subprocess.call(cmd.split(), stdout=f)
+                    sp_fn = '%s/%s.sp' % (self.out_path, base)
+
+                    cmd = '%s -a %f -g %f -m %d -l 2048 -o 2 %s/%s.mgc | %s -d 32768.0 -P > %s' % \
+                      (self.MGC2SP, self.conf.FREQWARPING, cur_stream['parameters']['gamma'], cur_stream["order"],
+                       self.out_path, base, self.SOPR, sp_fn)
+
+                    utils.run_shell_command(cmd, self.logger)
 
             if not self.preserve:
                 try:

@@ -129,7 +129,7 @@ def main():
                 tmp = os.path.join(r, file).replace(".lab", "").replace(in_path, "")
                 tmp = re.sub(r"^/", "", tmp)
                 gen_labfile_base_lst.append(tmp)
-                logger.info("Add %s" % file)
+                logger.info("Add %s" % tmp)
     if conf.generator.upper() != "NONE":
         generate_label_list(conf, in_path, gen_labfile_base_lst)
 

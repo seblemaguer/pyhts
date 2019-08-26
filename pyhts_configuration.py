@@ -126,7 +126,7 @@ class Configuration(object):
             '22050': 0.45,
             '32000': 0.45,
             '44100': 0.53,
-            '48000': 0.55,
+            '48000': 0.77,  # FIXME: why this is changed?
         }
         self.SIGNAL = conf["signal"]
         self.FREQWARPING = FREQWARP_DIC[str(self.SIGNAL["samplerate"])]
