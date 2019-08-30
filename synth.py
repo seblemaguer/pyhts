@@ -69,15 +69,17 @@ def adapt_f0_files(_in_path, _out_path, gen_labfile_base_lst, ext):
         mask = np.fromfile("%s/%s.%s" % (_out_path, base, ext), dtype=np.float32)
 
         # Retrieve F0
-        lf0 = np.fromfile("%s/%s.%s" % (_in_path, base, ext), dtype=np.float32)
+        orig_lf0 = np.fromfile("%s/%s.%s" % (_in_path, base, ext), dtype=np.float32)
 
         # Applying mask!
-        for i in range(0, min(lf0.size, mask.size)):
-            if mask[i] == -1e10: # FIXME: only log supported for now
-                lf0[i] = mask[i]
+        lf0 = np.ones(mask.size) * -1e10
+        for i in range(0, min(orig_lf0.size, mask.size)):
+            if mask[i] != -1e10: # FIXME: only log supported for now
+                lf0[i] = orig_lf0[i]
+
 
         # Finally save the F0
-        lf0.tofile("%s/%s.%s" % (_out_path, base, ext))
+        lf0.astype(np.float32).tofile("%s/%s.%s" % (_out_path, base, ext))
 
 def generate_label_list(conf, in_path, input_label_list):
     """
@@ -121,7 +123,7 @@ def main():
     except OSError:
         pass
 
-    # 0. Generate list file
+    # 1. Generate list file
     gen_labfile_base_lst = []
     for r, d, f in os.walk(in_path):
         for file in f:
@@ -133,11 +135,11 @@ def main():
     if conf.generator.upper() != "NONE":
         generate_label_list(conf, in_path, gen_labfile_base_lst)
 
-    # Parameter generation
+    # 2. Parameter generation
     parameter_generator = generation.generateGenerator(conf, int(args.nb_proc), args.preserve)
     parameter_generator.generate(in_path, out_path, gen_labfile_base_lst, conf.use_gv)
 
-    # 5. Convert/adapt parameters
+    # 3. Convert/adapt parameters
     if (args.impose_f0_dir is not None) and (args.impose_interpolated_f0_dir  is not None):
         raise Exception("cannot impose 2 kind of F0 at the same time")
 
@@ -152,12 +154,12 @@ def main():
     if args.impose_bap_dir is not None:
         copy_imposed_files(args.impose_bap_dir, out_path, gen_labfile_base_lst, "bap")
 
-    # 6. Call straight to synthesize
+    # 4. Render signal from parameters
     renderer = rendering.generateRenderer(conf, int(args.nb_proc), args.preserve)
     renderer.render(in_path, out_path, gen_labfile_base_lst)
 
-    # if not args["--preserve"]:
-    #     shutil.rmtree(conf.TMP_PATH)
+    if not args.preserve:
+        shutil.rmtree(conf.TMP_PATH)
 
 
 ###############################################################################
